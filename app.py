@@ -27,9 +27,9 @@ Session(app)
 
 LESSON_PATH = os.path.join("static", "lessons")  # Папка с HTML-уроками
 
-@app.route("/embed")
-def embed():
-    return render_template("chat_embed.html")
+@app.route("/embed_full")
+def embed_full():
+    return render_template("chat_embed_fullstyle.html")
 
 
 @app.after_request
