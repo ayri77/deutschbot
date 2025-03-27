@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Чат-бот</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 10px; background: #f9f9f9; }
+    #chat { max-width: 700px; margin: 0 auto; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+    .msg { margin-bottom: 10px; }
+    .msg.user { text-align: right; color: #00695c; }
+    .msg.bot { text-align: left; color: #424242; }
+    #input { display: flex; margin-top: 10px; }
+    #input textarea { flex: 1; resize: none; padding: 8px; border-radius: 5px; }
+    #input button { margin-left: 8px; padding: 8px 12px; border-radius: 5px; background: #1976d2; color: white; border: none; }
+  </style>
+</head>
+<body>
+  <div id="chat">
+    <div id="messages"></div>
+    <div id="input">
+      <textarea id="message" rows="2" placeholder="Введите сообщение..."></textarea>
+      <button onclick="send()">Отправить</button>
+    </div>
+  </div>
+
+  <script>
+    const topic = new URLSearchParams(window.location.search).get("topic") || "Немецкий язык";
+
+    async function send() {
+      const text = document.getElementById("message").value.trim();
+      if (!text) return;
+
+      appendMessage(text, "user");
+      document.getElementById("message").value = "";
+
+      const res = await fetch("/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: text })
+      });
+
+      const data = await res.json();
+      appendMessage(data.answer || "Ошибка", "bot");
+    }
+
+    function appendMessage(text, role) {
+      const div = document.createElement("div");
+      div.className = "msg " + role;
+      div.innerText = text;
+      document.getElementById("messages").appendChild(div);
+      div.scrollIntoView({ behavior: "smooth" });
+    }
+
+    // Установка контекста темы (один раз при загрузке)
+    fetch(`/lesson?topic=${encodeURIComponent(topic)}`)
+      .then(r => r.text())
+      .then(html => {
+        const text = new DOMParser().parseFromString(html, "text/html").body.innerText;
+        return fetch("/set_context", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ context: text, topic: topic })
+        });
+      });
+  </script>
+</body>
+</html>

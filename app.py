@@ -27,6 +27,11 @@ Session(app)
 
 LESSON_PATH = os.path.join("static", "lessons")  # Папка с HTML-уроками
 
+@app.route("/embed")
+def embed():
+    return render_template("chat_embed.html")
+
+
 @app.after_request
 def allow_iframe(response):
     response.headers["X-Frame-Options"] = "ALLOWALL"
