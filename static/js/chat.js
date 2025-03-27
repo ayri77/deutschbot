@@ -1,4 +1,4 @@
-let topic = topic || new URLSearchParams(window.location.search).get("topic") || "Немецкий язык";
+const topic = new URLSearchParams(window.location.search).get("topic") || "Немецкий язык";
 
 // Вспомогательная функция для сокращения записи document.getElementById
 const getEl = (id) => document.getElementById(id);
