@@ -28,8 +28,8 @@ Session(app)
 LESSON_PATH = os.path.join("static", "lessons")  # Папка с HTML-уроками
 
 @app.after_request
-def remove_x_frame_options(response):
-    response.headers.pop('X-Frame-Options', None)
+def allow_iframe(response):
+    response.headers["X-Frame-Options"] = "ALLOWALL"
     return response
 
 # Функция загрузки текста урока
