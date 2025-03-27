@@ -455,8 +455,6 @@ const getChatbotMessageText = () => {
 }
 
 const sendChatbotMessage = (userMessage) => {
-  const topic = document.getElementById('topic').value;
-
   fetch('/ask', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
