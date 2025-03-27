@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Учебный чат-бот</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>	
+</head>
+<body>
+	<h2>
+	  <span class="material-icons" style="vertical-align: middle; margin-right: 10px;">school</span>
+	  Чат-бот для изучения немецкого языка
+	</h2>
+
+    <div id="chat-container">
+	
+		<div class="topic-wrapper">
+		
+			<div class="topic-bar">
+			  <span class="topic-label">Выберите тему:</span>
+			  <select id="topic" onchange="loadLesson()">
+				<option value="" selected disabled>Выберите тему</option>
+				<option value="Am Bahnhof A1.1. Wortschatz">Am Bahnhof A1.1. Wortschatz</option>
+				<option value="A1.2. Timo´s Freund Kurt und seine Freundin Anna. Das erste Treffen">A1.2. Timo´s Freund Kurt und seine Freundin Anna. Das erste Treffen</option>
+				<option value="Lektion 17. Timo und Anna">Lektion 17. Timo und Anna</option>
+			  </select>
+			</div>		
+		
+		
+			<div class="tab-container">
+			  <button class="tab-button active" onclick="switchTab(this, 'lesson-tab')">
+				<span class="material-icons">menu_book</span> Урок
+			  </button>
+			  <button class="tab-button" onclick="switchTab(this, 'chat-tab')">
+				<span class="material-icons">chat</span> Чат-бот
+			  </button>
+			  <button class="tab-button" onclick="switchTab(this, 'test-tab')">
+				<span class="material-icons">fact_check</span> Тестирование
+			  </button>
+			</div>
+		</div>	
+
+		<div id="lesson-tab" class="tab-content active">
+		  <div id="lesson-text">Выберите тему, чтобы загрузить текст урока...</div>
+		</div>
+
+		<div id="chat-tab" class="tab-content">
+		  <div id="chat-wrapper">
+			<div id="chat-bot-mood">
+			  <div id="chat-bot-mood-icon"></div>
+			  <div id="chat-bot-mood-label">
+				<h1 id="chat-bot-mood-text">Chatbot is feeling</h1>
+				<h1 id="chat-bot-mood-value">Mood</h1>
+			  </div>
+			</div>
+			<div id="letter-pool"></div>
+			<div id="temp-letter-pool"></div>
+			<div id="letter-overlay"></div>
+			<div id="chat-message-window">
+			  <div id="message-input-wrapper">
+				<div id="message-input">
+				  <textarea id="message-input-field" placeholder="Введите сообщение..."></textarea>
+				  <div id="send-message-button">
+					<i class="fas fa-arrow-alt-circle-right"></i>
+				  </div>
+				</div>
+			  </div>
+			  <div id="chat-message-column-wrapper" class="scroll-bar">
+				<div id="chat-message-column" class="static"></div>
+			  </div>
+			</div>
+		  </div>
+		</div>
+		
+		<div id="test-tab" class="tab-content">
+		  <div id="test-container-wrapper" class="test-wrapper">
+			<div class="test-controls">
+			  <button onclick="startTest()" class="evaluate-button">
+				<span class="material-icons">task_alt</span> Пройти тест
+			  </button>
+			  <div id="evaluate-wrapper"></div>
+			</div>
+			<div class="test-scroll-area">
+			  <div id="test-container"></div>
+			  <div id="feedback-container" style="margin-top: 20px;"></div>
+			</div>
+		  </div>
+		</div>
+
+
+								
+    </div>
+
+    <script>
+		function switchTab(button, tabId) {
+		  document.querySelectorAll('.tab-content').forEach(tab => {
+			tab.classList.remove('active');
+		  });
+		  document.getElementById(tabId).classList.add('active');
+
+		  document.querySelectorAll('.tab-button').forEach(btn => {
+			btn.classList.remove('active');
+		  });
+		  button.classList.add('active');
+		}
+
+		function loadLesson() {
+		  let topic = document.getElementById("topic").value;
+		  let lessonText = document.getElementById("lesson-text");
+
+		  if (!topic) {
+			lessonText.innerHTML = "Выберите тему, чтобы загрузить текст урока...";
+			return;
+		  }
+
+		  fetch(`/lesson?topic=${encodeURIComponent(topic)}`)
+			.then(response => response.text())
+			.then(data => {
+			  // Отобразим HTML-урок в разделе "Урок"
+			  lessonText.innerHTML = `<div style="padding: 15px; overflow: auto; border-radius: 8px; border: 2px solid #ffcc80; background: #fff8e1;">${data}</div>`;
+
+			  // Извлекаем чистый текст из HTML
+			  const parser = new DOMParser();
+			  const doc = parser.parseFromString(data, 'text/html');
+			  const plainText = doc.body.innerText;
+
+			  // Отправляем очищенный текст + тему на сервер
+			  fetch('/set_context', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+				  context: plainText,
+				  topic: topic
+				})
+			  });
+			})
+			.catch(error => {
+			  lessonText.innerHTML = `<p style='color: red;'>Ошибка загрузки урока: ${error.message}</p>`;
+			  console.error("Ошибка при загрузке урока:", error);
+			});
+		}
+
+		
+        function formatText(text) {
+            return text.replace(/\n/g, "<br>");
+        }		
+		
+		function evaluateResponse() {
+			let userAnswers = document.querySelectorAll("input[type='radio']:checked");
+			let feedbackContainer = document.getElementById("feedback-container");
+			feedbackContainer.innerHTML = ""; // Очистка старого результата
+
+			if (userAnswers.length === 0) {
+				feedbackContainer.innerHTML = "<p style='color: red;'>Выберите хотя бы один вариант ответа!</p>";
+				return;
+			}
+
+			let results = [];
+			userAnswers.forEach(answer => {
+				let isCorrect = answer.getAttribute("data-correct") === "true";
+				let resultText = isCorrect 
+					? `<p style='color: green;'>✅ ${answer.value} – Верно</p>`
+					: `<p style='color: red;'>❌ ${answer.value} – Неверно</p>`;
+				results.push(resultText);
+			});
+
+			feedbackContainer.innerHTML = results.join("");
+			setTimeout(() => {
+			  document.getElementById("feedback-container").scrollIntoView({ behavior: "smooth", block: "start" });
+			}, 100);			
+		}		
+		
+		function startTest() {
+			const topic = document.getElementById("topic").value;
+			const testContainer = document.getElementById("test-container");
+			const testWrapper = document.getElementById("test-container-wrapper");
+
+			if (!topic) {
+				alert("Сначала выберите тему!");
+				return;
+			}
+
+			// Очистка и показ контейнера
+			testContainer.innerHTML = "";
+			testWrapper.style.display = "block";
+
+			// Заголовок
+			const title = document.createElement('h3');
+			title.innerHTML = "Тест по теме: <span style='color:#0056b3'>" + topic + "</span>";
+			testContainer.appendChild(title);
+
+			// Загрузка теста
+			fetch(`/test?topic=${encodeURIComponent(topic)}`)
+				.then(response => response.json())
+				.then(data => {
+					if (data.error) {
+						testContainer.innerHTML = `<p style='color: red;'>Ошибка: ${data.error}</p>`;
+						return;
+					}
+
+					data.questions.forEach((q, index) => {
+						const questionBlock = document.createElement('div');
+						questionBlock.style.marginBottom = "20px";
+
+						let html = `<p><strong>${index + 1}. ${q.question}</strong></p>`;
+						q.options.forEach(opt => {
+							const isCorrect = (q.answer === opt) ? "true" : "false";
+							html += `<label style="display: block; margin: 5px 0;">
+								<input type='radio' name='q${index}' value='${opt}' data-correct='${isCorrect}'> ${opt}
+							</label>`;
+						});
+
+						questionBlock.innerHTML = html;
+						testContainer.appendChild(questionBlock);
+					});
+
+					// Кнопка "Проверить ответы"
+					const checkButton = document.createElement("button");
+					checkButton.className = "tab-button";
+					checkButton.innerHTML = `<span class="material-icons">done_all</span> Проверить ответы`;
+					checkButton.onclick = evaluateResponse;
+
+					const evaluateWrapper = document.getElementById("evaluate-wrapper");
+					evaluateWrapper.innerHTML = ""; // очистить
+					evaluateWrapper.appendChild(checkButton);
+				})
+				.catch(error => {
+					testContainer.innerHTML = `<p style='color: red;'>Ошибка загрузки теста: ${error.message}</p>`;
+					console.error("Ошибка при загрузке теста:", error);
+				});
+
+			// Прокрутка к началу теста
+			setTimeout(() => {
+				document.querySelector('#test-tab').scrollIntoView({ behavior: "smooth", block: "start" });
+			}, 100);
+		}
+
+
+    </script>
+	<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+</body>
+</html>

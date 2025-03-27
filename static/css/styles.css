@@ -1,0 +1,376 @@
+html, body {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}
+
+body {
+	font-family: 'Roboto', sans-serif;
+	background-color: #f4f4f4;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+h2 {
+	margin: 20px 0 10px;
+	font-weight: 500;
+	font-size: 28px;
+	color: #333;
+	text-shadow: 1px 1px 0 #ffffff;
+	text-align: center;
+	padding: 10px 0;
+	border-bottom: 1px solid #ddd;
+	width: 100%;
+}
+
+label {
+	font-size: 16px;
+	color: #333;
+	margin-bottom: 5px;
+	display: block;
+	font-weight: 500;
+}
+
+#chat-container {
+	width: 98%;
+	max-width: 1400px;
+	background: white;
+	padding: 30px;
+	border-radius: 16px;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	overflow: hidden;
+	margin-bottom: 20px;
+}
+
+#chat-tab {
+	position: relative;
+	height: 600px;
+	overflow: hidden;
+}
+
+#letter-pool,
+#temp-letter-pool,
+#letter-overlay {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	top: 0;
+	left: 0;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 1;
+}
+
+#chat-message-window {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 2;
+}
+
+.tab-container {
+	display: flex;
+	justify-content: center;
+	margin: 20px 0;
+	gap: 20px;
+	width: 100%;
+	max-width: 100%;
+	flex-wrap: wrap;
+}
+
+.tab-content {
+	flex: 1;
+	display: none;
+	flex-direction: column;
+	padding: 10px;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+.tab-content.active {
+	display: flex;
+}
+
+.tab-button {
+	border: none;
+	border-radius: 25px;
+	padding: 12px 24px;
+	font-size: 16px;
+	font-weight: 500;
+	background: linear-gradient(to right, #007bff, #3399ff);
+	color: white;
+	box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+	cursor: pointer;
+	transition: all 0.3s ease-in-out;
+	outline: none;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	white-space: nowrap;
+}
+
+.tab-button:hover,
+.tab-button.active {
+	background: linear-gradient(to right, #0056b3, #007bff);
+	transform: scale(1.05);
+}
+
+.tab-button.active {
+	box-shadow: 0 4px 10px rgba(0, 123, 255, 0.4);
+	transform: scale(1.08);
+	color: #fff;
+}
+
+/* Только для остальных кнопок */
+button:not(.tab-button) {
+	border: none;
+	border-radius: 25px;
+	padding: 12px 24px;
+	font-size: 16px;
+	font-weight: 500;
+	background: linear-gradient(to right, #007bff, #3399ff);
+	color: white;
+	box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+	cursor: pointer;
+	transition: all 0.3s ease-in-out;
+	outline: none;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	white-space: nowrap;
+}
+
+button:not(.tab-button):hover {
+	background: linear-gradient(to right, #0056b3, #007bff);
+	transform: scale(1.05);
+}
+
+select {
+	width: 100%;
+	max-width: none;
+	background-color: white;
+	color: #333;
+	padding: 10px 20px;
+	appearance: none;
+	-webkit-appearance: none;
+	background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%23333' d='M2 0L0 2h4L2 0zM2 5L0 3h4l-2 2z'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 10px center;
+	background-size: 12px;
+	box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+	margin-bottom: 10px;
+	border: 1px solid #ccc;
+	border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+	.tab-button,
+	button,
+	select {
+		font-size: 14px;
+		padding: 10px 16px;
+	}
+}
+
+textarea {
+	height: 80px;
+	resize: none;
+	width: 100%;
+}
+
+#lesson-text {
+	flex: 1;
+	padding: 25px;
+	border-radius: 16px;
+	font-size: 16px;
+	width: 100%;
+	height: 100%;
+	text-align: left;
+	border: 2px solid #ffcc80;
+	background: #fff8e1;
+	overflow-y: auto;
+	box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+	margin-bottom: 30px;
+	min-height: 400px;
+	box-sizing: border-box;
+}
+
+#chatbox {
+	flex: 1;
+	width: 100%;
+	max-width: 800px;
+	padding: 15px;
+	margin-top: 15px;
+	border-radius: 8px;
+	border: 2px solid #ddd;
+	background-color: #f9f9f9;
+	display: flex;
+	flex-direction: column;
+	overflow-y: auto;
+}
+
+.message {
+	padding: 10px 15px;
+	border-radius: 10px;
+	margin: 5px;
+	max-width: 70%;
+	display: flex;
+	flex-direction: column;
+}
+
+.user-message {
+	background-color: #d1e7dd;
+	align-self: flex-end;
+	text-align: right;
+}
+
+.bot-message {
+	background-color: #cff4fc;
+	align-self: flex-start;
+	text-align: left;
+}
+
+.message-container {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+}
+
+.avatar {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+}
+
+#loading {
+	display: none;
+	font-size: 18px;
+	color: #555;
+	margin-top: 15px;
+}
+
+.material-icons {
+	font-family: 'Material Icons';
+	font-weight: normal;
+	font-style: normal;
+	font-size: 24px;
+	display: inline-block;
+	line-height: 1;
+	text-transform: none;
+	letter-spacing: normal;
+	word-wrap: normal;
+	white-space: nowrap;
+	direction: ltr;
+	-webkit-font-feature-settings: 'liga';
+	-webkit-font-smoothing: antialiased;
+}
+
+.topic-wrapper {
+	margin-bottom: 20px;
+	width: 100%;
+	max-width: 100%;
+	background: #eef6ff;
+	padding: 15px 20px;
+	border-radius: 12px;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+	border-left: 4px solid #007bff;
+	display: flex;
+	flex-direction: column;
+	grid-template-columns: 1fr auto;
+	align-items: center;
+	gap: 20px;
+	flex-wrap: wrap;	
+	box-sizing: border-box;
+}
+
+.test-controls {
+  display: flex;
+  justify-content: space-between; /* или flex-end / center — по желанию */
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.topic-bar {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: #eef6ff;
+  padding: 15px 20px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  border-left: 4px solid #007bff;
+  margin-bottom: 20px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #0056b3;
+}
+
+.topic-bar select {
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+	padding: 12px 16px;
+	font-size: 16px;
+	flex: 1;
+	min-width: 800px; 
+	flex-grow: 1;
+}
+
+.topic-label {
+  font-weight: bold;
+  font-size: 16px;
+  color: black;
+}
+
+.topic-bar select {
+  font-weight: bold;
+  color: #0056b3;
+}
+
+
+
+#lesson-text table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 16px;
+}
+
+#lesson-text table th,
+#lesson-text table td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: left;
+}
+
+#lesson-text table th {
+  background-color: #f0f8ff;
+  font-weight: bold;
+}
+
+#lesson-text p {
+  margin: 10px 0;
+  line-height: 1.6;
+}
+
+#lesson-text h1, #lesson-text h2, #lesson-text h3 {
+  color: #0056b3;
+  margin-top: 20px;
+}
+
+#lesson-text img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 10px 0;
+}

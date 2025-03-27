@@ -1,0 +1,8 @@
+Flask
+flask-session
+python-dotenv
+openai
+beautifulsoup4
+chardet
+gunicorn
+

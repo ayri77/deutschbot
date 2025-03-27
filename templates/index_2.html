@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Учебный чат-бот</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            text-align: center; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            justify-content: center;
+            background-color: #f4f4f4;
+        }
+        #chat-container {
+            width: 90%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #chatbox { 
+            width: 100%; 
+            border: 1px solid #ccc; 
+            padding: 15px; 
+            margin-top: 10px; 
+            height: 400px; 
+            overflow-y: auto; 
+            background: #f9f9f9; 
+            border-radius: 8px;
+            text-align: left;
+        }
+        .user-message { color: blue; font-weight: bold; margin-top: 10px; font-size: 16px; }
+        .bot-message { color: green; background: #e6ffe6; padding: 10px; border-radius: 5px; margin: 5px 0; font-size: 16px; }
+        textarea { width: 100%; height: 80px; font-size: 16px; padding: 8px; border-radius: 5px; border: 1px solid #ccc; }
+        button { font-size: 16px; padding: 10px 15px; cursor: pointer; margin-top: 10px; border-radius: 5px; background-color: #007bff; color: white; border: none; }
+        button:hover { background-color: #0056b3; }
+        label { font-size: 18px; font-weight: bold; display: block; margin-bottom: 5px; }
+        select { font-size: 16px; padding: 8px; margin-bottom: 10px; border-radius: 5px; }
+        #lesson-text { 
+            width: 100%; 
+            background: #fff3cd; 
+            border: 1px solid #ffecb5; 
+            padding: 10px; 
+            margin-bottom: 15px; 
+            border-radius: 5px; 
+            text-align: left;
+            font-size: 16px;
+        }
+        #loading {
+            display: none;
+            font-size: 16px;
+            color: #555;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Чат-бот для изучения немецкого языка</h2>
+
+    <div id="chat-container">
+        <label for="topic">Выберите тему:</label>
+        <select id="topic" onchange="loadLesson()">
+            <option value="" selected disabled>Выберите тему</option>
+            <option value="Perfekt">Perfekt</option>
+            <option value="Präteritum">Präteritum</option>
+            <option value="Passiv">Пассив</option>
+        </select>
+        
+        <div id="lesson-text">Выберите тему, чтобы загрузить текст урока...</div>
+        
+        <textarea id="question" placeholder="Введите ваш вопрос..."></textarea>
+        <button onclick="askChatGPT()">Спросить</button>
+        <button onclick="startTest()">Пройти тест</button>
+        
+        <div id="loading">⏳ Пожалуйста, подождите...</div>
+        <div id="chatbox"></div>
+        <div id="test-container"></div>
+    </div>
+
+    <script>
+        function loadLesson() {
+            let topic = document.getElementById("topic").value;
+            let lessonText = document.getElementById("lesson-text");
+            
+            if (!topic) {
+                lessonText.innerHTML = "Выберите тему, чтобы загрузить текст урока...";
+                return;
+            }
+            
+            fetch(`/lesson?topic=${topic}`)
+                .then(response => response.text())
+                .then(data => {
+                    lessonText.innerHTML = data;
+                });
+        }
+
+        function askChatGPT() {
+            let question = document.getElementById("question").value;
+            let topic = document.getElementById("topic").value;
+            let chatbox = document.getElementById("chatbox");
+            let loading = document.getElementById("loading");
+
+            if (!question.trim()) return;
+
+            chatbox.innerHTML += `<p class="user-message"><strong>Вы:</strong> ${question}</p>`;
+            document.getElementById("question").value = "";
+            loading.style.display = "block";
+
+            fetch("/ask", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question: question, topic: topic })
+            })
+            .then(response => response.json())
+            .then(data => {
+                chatbox.innerHTML += `<p class="bot-message"><strong>Бот:</strong> ${formatText(data.answer)}</p>`;
+                chatbox.scrollTop = chatbox.scrollHeight;
+                loading.style.display = "none";
+            });
+        }
+
+        function formatText(text) {
+            return text.replace(/\n/g, "<br>");
+        }
+
+		function startTest() {
+			let topic = document.getElementById("topic").value;
+			let testContainer = document.getElementById("test-container");
+
+			if (!topic) {
+				alert("Сначала выберите тему!");
+				return;
+			}
+
+			document.getElementById("loading").style.display = "block";
+
+			fetch(`/test?topic=${topic}`)
+				.then(response => response.text())  // Получаем как текст (ChatGPT может вернуть строку)
+				.then(text => {
+					try {
+						return JSON.parse(text);  // Преобразуем в JSON
+					} catch (error) {
+						throw new Error("Ошибка парсинга JSON: " + text);
+					}
+				})
+				.then(data => {
+					document.getElementById("loading").style.display = "none";
+
+					if (data.error) {
+						testContainer.innerHTML = `<p style='color: red;'>Ошибка: ${data.error}</p>`;
+						return;
+					}
+
+					let testHTML = "<h3>Тест по теме: " + topic + "</h3>";
+					data.questions.forEach((q, index) => {
+						testHTML += `<p>${index + 1}. ${q.question}</p>`;
+						q.options.forEach(opt => {
+							testHTML += `<input type='radio' name='q${index}' value='${opt}'> ${opt}<br>`;
+						});
+					});
+					testHTML += "<button onclick='submitTest()'>Отправить ответы</button>";
+					testContainer.innerHTML = testHTML;
+				})
+				.catch(error => {
+					document.getElementById("loading").style.display = "none";
+					testContainer.innerHTML = `<p style='color: red;'>Ошибка загрузки теста: ${error.message}</p>`;
+				});
+		}
+
+        function submitTest() {
+            alert("Функция отправки теста пока в разработке");
+        }
+    </script>
+</body>
+</html>

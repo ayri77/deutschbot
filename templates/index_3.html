@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Учебный чат-бот</title>
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+</head>
+<body>
+    <h2>Чат-бот для изучения немецкого языка</h2>
+
+    <div id="chat-container">
+        <label for="topic">Выберите тему:</label>
+        <select id="topic" onchange="loadLesson()">
+            <option value="" selected disabled>Выберите тему</option>
+			<option value="A1.1. Eine Fahrkarte (ein Bahnticket) kaufen">A1.1. Eine Fahrkarte (ein Bahnticket) kaufen</option>
+            <option value="A1.2. Timo´s Freund Kurt und seine Freundin Anna. Das erste Treffen">A1.2. Timo´s Freund Kurt und seine Freundin Anna. Das erste Treffen</option>
+			<option value="Lektion 17. Timo und Anna">Lektion 17. Timo und Anna</option>
+        </select>
+		<div class="tab-container">
+		  <button class="tab-button active" onclick="switchTab(event, 'lesson-tab')">📖 Урок</button>
+		  <button class="tab-button" onclick="switchTab(event, 'chat-tab')">💬 Чат-бот</button>
+		  <button class="tab-button" onclick="switchTab(event, 'test-tab')">📝 Тестирование</button>
+		</div>
+
+		<div id="lesson-tab" class="tab-content active">
+		  <div id="lesson-text">Выберите тему, чтобы загрузить текст урока...</div>
+		</div>
+
+		<div id="chat-tab" class="tab-content">
+		  <textarea id="question" placeholder="Введите ваш вопрос..."></textarea>
+		  <button onclick="askChatGPT()">Спросить</button>
+		  <div id="loading">⏳ Пожалуйста, подождите...</div>
+		  <div id="chatbox"></div>
+		</div>
+
+		<div id="test-tab" class="tab-content">
+		  <button onclick="startTest()">Пройти тест</button>
+		  <div id="test-container"></div>
+		</div>
+				
+    </div>
+
+    <script>
+		function switchTab(event, tab) {
+			document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+			document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+			document.getElementById(tab).classList.add('active');
+			event.currentTarget.classList.add('active');
+		}
+		function loadLesson() {
+			let topic = document.getElementById("topic").value;
+			let lessonText = document.getElementById("lesson-text");
+
+			if (!topic) {
+				lessonText.innerHTML = "Выберите тему, чтобы загрузить текст урока...";
+				return;
+			}
+
+		fetch(`/lesson?topic=${topic}`)
+			.then(response => response.text())
+			.then(data => {
+				lessonText.innerHTML = `<div style="padding: 15px; max-height: 500px; overflow: auto; border-radius: 8px; border: 2px solid #ffcc80; background: #fff8e1;">${data}</div>`; 
+			});
+		}
+		
+        function formatText(text) {
+            return text.replace(/\n/g, "<br>");
+        }		
+
+		function addMessage(author, text) {
+			let chatbox = document.getElementById("chatbox");
+			let messageContainer = document.createElement("div");
+			messageContainer.classList.add("message-container");
+
+			let avatar = document.createElement("img");
+			avatar.classList.add("avatar");
+
+			let message = document.createElement("div");
+			message.classList.add("message");
+
+			if (author === "user") {
+				message.classList.add("user-message");
+				avatar.src = "https://cdn-icons-png.flaticon.com/512/3177/3177440.png"; // Иконка пользователя
+			} else {
+				message.classList.add("bot-message");
+				avatar.src = "https://cdn-icons-png.flaticon.com/512/4712/4712109.png"; // Иконка чатбота
+			}
+
+			message.innerHTML = `<strong>${author === "user" ? "Вы:" : "Бот:"}</strong> ${text}`;
+			if (author === "user") {
+				messageContainer.appendChild(message);
+				messageContainer.appendChild(avatar);
+			} else {
+				messageContainer.appendChild(avatar);
+				messageContainer.appendChild(message);
+			}
+
+			chatbox.appendChild(messageContainer);
+			chatbox.scrollTop = chatbox.scrollHeight;
+		}
+
+		function askChatGPT() {
+			let question = document.getElementById("question").value;
+			let loading = document.getElementById("loading");
+
+			if (!question.trim()) return;
+
+			addMessage("user", question);
+			document.getElementById("question").value = "";
+			loading.style.display = "block";
+
+			fetch("/ask", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ question: question })
+			})
+			.then(response => response.json())
+			.then(data => {
+				addMessage("bot", formatText(data.answer));
+				loading.style.display = "none";
+			});
+		}
+		
+		function evaluateResponse() {
+			let userAnswers = document.querySelectorAll("input[type='radio']:checked");
+			let feedbackContainer = document.getElementById("feedback-container");
+			feedbackContainer.innerHTML = ""; // Очистка старого результата
+
+			if (userAnswers.length === 0) {
+				feedbackContainer.innerHTML = "<p style='color: red;'>Выберите хотя бы один вариант ответа!</p>";
+				return;
+			}
+
+			let results = [];
+			userAnswers.forEach(answer => {
+				let isCorrect = answer.getAttribute("data-correct") === "true";
+				let resultText = isCorrect 
+					? `<p style='color: green;'>✅ ${answer.value} – Верно</p>`
+					: `<p style='color: red;'>❌ ${answer.value} – Неверно</p>`;
+				results.push(resultText);
+			});
+
+			feedbackContainer.innerHTML = results.join("");
+		}		
+		
+		function startTest() {
+			let topic = document.getElementById("topic").value;
+			let testContainer = document.getElementById("test-container");
+			let testLoading = document.getElementById("test-loading");
+			
+			if (!topic) {
+				alert("Сначала выберите тему!");
+				return;
+			}
+
+			if (testLoading) testLoading.style.display = "block";
+			testContainer.innerHTML = "";
+
+			fetch(`/test?topic=${topic}`)
+				.then(response => response.json())
+				.then(data => {
+					if (testLoading) testLoading.style.display = "none";
+					if (data.error) {
+						testContainer.innerHTML = `<p style='color: red;'>Ошибка: ${data.error}</p>`;
+						return;
+					}
+					let testHTML = "<h3>Тест по теме: " + topic + "</h3>";
+					data.questions.forEach((q, index) => {
+						testHTML += `<p>${index + 1}. ${q.question}</p>`;
+						q.options.forEach(opt => {
+							let isCorrect = (q.answer === opt) ? "true" : "false";
+							testHTML += `<input type='radio' name='q${index}' value='${opt}' data-correct='${isCorrect}'> ${opt}<br>`;
+						});
+					});
+					testHTML += "<button onclick='evaluateResponse()'>Проверить ответы</button>";
+					testContainer.innerHTML = testHTML;
+				})
+				.catch(error => {
+					if (testLoading) testLoading.style.display = "none";
+					testContainer.innerHTML = `<p style='color: red;'>Ошибка загрузки теста: ${error.message}</p>`;
+					console.error("Ошибка при запросе теста:", error);
+				});
+		}
+    </script>
+	<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+</body>
+</html>
