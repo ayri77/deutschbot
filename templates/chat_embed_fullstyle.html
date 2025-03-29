@@ -1,63 +1,71 @@
 <!DOCTYPE html>
 <html lang="ru">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Учебный чат-бот</title>
-		<link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
-		<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-		<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-		<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>	
-		
-		<script>
-		  const embedMode = true;
-		</script>
-		
-	</head>
-	<body>
-		<div style="max-width: 800px; margin: 0 auto;">
-			<div id="chat-tab" class="tab-content">
-			  <div id="chat-wrapper">
-				<div id="chat-bot-mood">
-				  <div id="chat-bot-mood-icon"></div>
-				  <div id="chat-bot-mood-label">
-					<h1 id="chat-bot-mood-text">Chatbot is feeling</h1>
-					<h1 id="chat-bot-mood-value">Mood</h1>
-				  </div>
-				</div>
-				<div id="letter-pool"></div>
-				<div id="temp-letter-pool"></div>
-				<div id="letter-overlay"></div>
-				<div id="chat-message-window">
-				  <div id="message-input-wrapper">
-					<div id="message-input">
-					  <textarea id="message-input-field" placeholder="Введите сообщение..."></textarea>
-					  <div id="send-message-button">
-						<i class="fas fa-arrow-alt-circle-right"></i>
-					  </div>
-					</div>
-				  </div>
-				  <div id="chat-message-column-wrapper" class="scroll-bar">
-					<div id="chat-message-column" class="static"></div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Учебный чат-бот</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>	
+</head>
+<body>
+    <div id="chat-container">
+	
+		<div id="chat-tab">
+		  <div id="chat-wrapper">
+			<div id="chat-bot-mood">
+			  <div id="chat-bot-mood-icon"></div>
+			  <div id="chat-bot-mood-label">
+				<h1 id="chat-bot-mood-text">Chatbot is feeling</h1>
+				<h1 id="chat-bot-mood-value">Mood</h1>
+			  </div>
+			</div>
+			<div id="letter-pool"></div>
+			<div id="temp-letter-pool"></div>
+			<div id="letter-overlay"></div>
+			<div id="chat-message-window">
+			  <div id="message-input-wrapper">
+				<div id="message-input">
+				  <textarea id="message-input-field" placeholder="Введите сообщение..."></textarea>
+				  <div id="send-message-button">
+					<i class="fas fa-arrow-alt-circle-right"></i>
 				  </div>
 				</div>
 			  </div>
+			  <div id="chat-message-column-wrapper" class="scroll-bar">
+				<div id="chat-message-column" class="static"></div>
+			  </div>
 			</div>
+		  </div>
 		</div>
 		
-		<script>
-		/*
-		  const topic = new URLSearchParams(window.location.search).get("topic") || "Немецкий язык";
+								
+    </div>
 
-		  // Загружаем текст урока и передаём его в контекст
+    <script>
+		function loadLesson() {
+		  let topic = document.getElementById("topic").value;
+		  let lessonText = document.getElementById("lesson-text");
+
+		  if (!topic) {
+			lessonText.innerHTML = "Выберите тему, чтобы загрузить текст урока...";
+			return;
+		  }
+
 		  fetch(`/lesson?topic=${encodeURIComponent(topic)}`)
 			.then(response => response.text())
-			.then(html => {
+			.then(data => {
+			  // Отобразим HTML-урок в разделе "Урок"
+			  lessonText.innerHTML = `<div style="padding: 15px; overflow: auto; border-radius: 8px; border: 2px solid #ffcc80; background: #fff8e1;">${data}</div>`;
+
+			  // Извлекаем чистый текст из HTML
 			  const parser = new DOMParser();
-			  const doc = parser.parseFromString(html, "text/html");
+			  const doc = parser.parseFromString(data, 'text/html');
 			  const plainText = doc.body.innerText;
 
+			  // Отправляем очищенный текст + тему на сервер
 			  fetch('/set_context', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -66,18 +74,20 @@
 				  topic: topic
 				})
 			  });
+			})
+			.catch(error => {
+			  lessonText.innerHTML = `<p style='color: red;'>Ошибка загрузки урока: ${error.message}</p>`;
+			  console.error("Ошибка при загрузке урока:", error);
 			});
-		*/
-		</script>
+		}
 
+		
+        function formatText(text) {
+            return text.replace(/\n/g, "<br>");
+        }		
+		
 
-		<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
-		
-		<script>
-		  window.onload = () => {
-			init();
-		  };
-		</script>
-		
-	</body>
+    </script>
+	<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+</body>
 </html>

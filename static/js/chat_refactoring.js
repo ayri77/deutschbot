@@ -1,4 +1,11 @@
-const topic = new URLSearchParams(window.location.search).get("topic") || "Немецкий язык";
+const topicEl = document.getElementById('topic');
+const topic = topicEl ? topicEl.value : "Немецкий язык";
+
+let LETTER_POOL, TEMP_LETTER_POOL, LETTER_OVERLAY,
+    CHAT_MESSAGE_COLUMN_WRAPPER, CHAT_MESSAGE_COLUMN,
+    MESSAGE_INPUT, MESSAGE_INPUT_FIELD,
+    CHAT_BOT_MOOD, CHAT_BOT_MOOD_VALUE;
+
 
 // Вспомогательная функция для сокращения записи document.getElementById
 const getEl = (id) => document.getElementById(id);
@@ -55,15 +62,7 @@ const getRandPosOffScreen = (quadrant = getRand(1,4)) => {
 };
 
 
-const LETTER_POOL = getEl('letter-pool'),
-      TEMP_LETTER_POOL = getEl('temp-letter-pool'),
-      LETTER_OVERLAY = getEl('letter-overlay'),
-      CHAT_MESSAGE_COLUMN_WRAPPER = getEl('chat-message-column-wrapper'),
-      CHAT_MESSAGE_COLUMN = getEl('chat-message-column'),
-      MESSAGE_INPUT = getEl('message-input'),
-      MESSAGE_INPUT_FIELD = getEl('message-input-field'),
-      CHAT_BOT_MOOD = getEl('chat-bot-mood'),
-      CHAT_BOT_MOOD_VALUE = getEl('chat-bot-mood-value')
+
 
 const STATE = {
   isUserSendingMessage: false,
@@ -508,6 +507,16 @@ const initLetterPool = () => {
 }
 
 const init = () => {
+
+  LETTER_POOL = getEl('letter-pool');
+  TEMP_LETTER_POOL = getEl('temp-letter-pool');
+  LETTER_OVERLAY = getEl('letter-overlay');
+  CHAT_MESSAGE_COLUMN_WRAPPER = getEl('chat-message-column-wrapper');
+  CHAT_MESSAGE_COLUMN = getEl('chat-message-column');
+  MESSAGE_INPUT = getEl('message-input');
+  MESSAGE_INPUT_FIELD = getEl('message-input-field');
+  CHAT_BOT_MOOD = getEl('chat-bot-mood');
+  CHAT_BOT_MOOD_VALUE = getEl('chat-bot-mood-value');
   setChatbotMood()
   initLetterPool()
 
@@ -581,8 +590,6 @@ MESSAGE_INPUT_FIELD.onkeyup = () => {
 }
 
 MESSAGE_INPUT_FIELD.oncut = () => toggleInput()
-
-window.onload = () => init()
 
 window.onfocus = () => resetLetterPool()
 

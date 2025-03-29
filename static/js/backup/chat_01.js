@@ -1,4 +1,5 @@
-const topic = new URLSearchParams(window.location.search).get("topic") || "Немецкий язык";
+const topicEl = document.getElementById('topic');
+const topic = topicEl ? topicEl.value : "Немецкий язык";
 
 // Вспомогательная функция для сокращения записи document.getElementById
 const getEl = (id) => document.getElementById(id);
@@ -582,7 +583,7 @@ MESSAGE_INPUT_FIELD.onkeyup = () => {
 
 MESSAGE_INPUT_FIELD.oncut = () => toggleInput()
 
-window.onload = () => init()
+window.onload = () => init();
 
 window.onfocus = () => resetLetterPool()
 
