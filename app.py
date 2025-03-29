@@ -27,10 +27,25 @@ Session(app)
 
 LESSON_PATH = os.path.join("static", "lessons")  # Папка с HTML-уроками
 
-@app.route("/embed_full")
+@app.route('/embed_full')
 def embed_full():
-    return render_template("chat_embed_fullstyle.html")
-
+    topic = request.args.get("topic")
+    file_type = request.args.get("file_type", "html")    
+    if topic:
+        # Загрузка HTML-урока
+        filename = topic + "." + file_type
+        filepath = os.path.join("lessons", filename)
+        if os.path.exists(filepath):
+            with open(filepath, encoding="utf-8") as f:
+                if file_type == "html":
+                    html = f.read()
+                    soup = BeautifulSoup(html, 'html.parser')
+                    text = soup.get_text(separator="\n")
+                elif file_type == "txt":
+                    text = f.read()
+                session['context'] = text
+                session['topic'] = topic
+    return render_template("embed_full.html")
 
 @app.after_request
 def allow_iframe(response):
