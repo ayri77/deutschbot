@@ -45,7 +45,7 @@ def embed_full():
                     text = f.read()
                 session['context'] = text
                 session['topic'] = topic
-    return render_template("embed_full.html")
+    return render_template("chat_embed_fullstyle.html")
 
 @app.after_request
 def allow_iframe(response):
