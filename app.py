@@ -31,10 +31,12 @@ LESSON_PATH = os.path.join("static", "lessons")  # Папка с HTML-урока
 def embed_full():
     topic = request.args.get("topic")
     file_type = request.args.get("file_type", "html")    
+    print(f"▶️ embed_full: topic = {topic}, file_type = {file_type}")
     if topic:
         # Загрузка HTML-урока
         filename = topic + "." + file_type
-        filepath = os.path.join("lessons", filename)
+        filepath = os.path.join("static","lessons", filename)
+        print(f"📁 Путь к файлу: {filepath}")
         if os.path.exists(filepath):
             with open(filepath, encoding="utf-8") as f:
                 if file_type == "html":
@@ -43,8 +45,19 @@ def embed_full():
                     text = soup.get_text(separator="\n")
                 elif file_type == "txt":
                     text = f.read()
-                session['context'] = text
-                session['topic'] = topic
+                else:
+                    print(f"⚠️ Неизвестный тип файла: {file_type}")
+                    text = ""
+
+                session.clear()
+                session['chat_context'] = text
+                session['chat_topic'] = topic
+                print("✅ Контекст загружен:")
+                print(text[:500])
+        else:
+            print(f"❌ Файл не найден: {filepath}")
+    else:
+        print("⚠️ Нет параметра 'topic' в URL")          
     return render_template("chat_embed_fullstyle.html")
 
 @app.after_request
@@ -91,16 +104,16 @@ def load_lesson_html(topic):
     return str(soup.body)    
  
 # Функция общения с ChatGPT
-def ask_chatgpt(question, topic):
-    messages = [
-        {"role": "system", "content": f"Ты преподаватель немецкого языка. Помогаешь ученикам изучать '{topic}'."},
-        {"role": "user", "content": question}
-    ]
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=messages
-    )    
-    return response.choices[0].message.content
+#def ask_chatgpt(question, topic):
+#    messages = [
+#        {"role": "system", "content": f"Ты преподаватель немецкого языка. Помогаешь ученикам изучать '{topic}'."},
+#        {"role": "user", "content": question}
+#    ]
+#    response = client.chat.completions.create(
+#        model="gpt-4",
+#        messages=messages
+#    )    
+#    return response.choices[0].message.content
 
 @app.route("/")
 def index():
@@ -116,25 +129,25 @@ def lesson():
 
     return lesson_text_html
 
-@app.route('/set_context', methods=['POST'])
-def set_context():
-    data = request.json
-    raw_html = data.get('context', '')
-    topic = data.get('topic', '')
-
-    soup = BeautifulSoup(raw_html, "html.parser")
-    clean_text = soup.get_text(separator="\n", strip=True)
-
-    #print("🔴 RAW HTML:", raw_html[:200]) # первые 200 символов для анализа
-    #print("🟢 CLEAN TEXT:", clean_text[:200]) # первые 200 символов для анализа
-
-    session['chat_context'] = clean_text
-    session['chat_topic'] = topic
-    session.pop('chat_history', None)
-
-    print("✅ Контекст сохранён:", clean_text[:100])
-
-    return {'status': 'ok'}
+#@app.route('/set_context', methods=['POST'])
+#def set_context():
+#    data = request.json
+#    raw_html = data.get('context', '')
+#    topic = data.get('topic', '')
+#
+#    soup = BeautifulSoup(raw_html, "html.parser")
+#    clean_text = soup.get_text(separator="\n", strip=True)
+#
+#    #print("🔴 RAW HTML:", raw_html[:200]) # первые 200 символов для анализа
+#    #print("🟢 CLEAN TEXT:", clean_text[:200]) # первые 200 символов для анализа
+#
+#    session['chat_context'] = clean_text
+#    session['chat_topic'] = topic
+#    session.pop('chat_history', None)
+#
+#    print("✅ Контекст сохранён:", clean_text[:100])
+#
+#    return {'status': 'ok'}
 
 
 @app.route("/ask", methods=["POST"])
@@ -152,7 +165,9 @@ def ask():
         if not lesson_text:
             session['chat_context'] = lesson_text
 
-        print(f"Текущий конекст: {lesson_text}")
+        print("=== CONTEXT PREVIEW ===")
+        print("📌 session['chat_topic'] =", topic)
+        print("📌 session['chat_context'] =", lesson_text[:300])        
 
         # Если истории нет, создаём первую запись с текстом урока
         if 'chat_history' not in session:
@@ -162,6 +177,11 @@ def ask():
 
         chat_history = session['chat_history']      
         chat_history.append({"role": "user", "content": question})
+
+        print("💬 История чата:")
+        for msg in session.get('chat_history', []):
+            print(f"{msg['role']}: {msg['content'][:100]}")
+
 
         response = client.chat.completions.create(
             model="gpt-4",
