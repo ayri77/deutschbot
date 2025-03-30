@@ -23,6 +23,9 @@ app.secret_key = "mysecretkey"
 # Включаем серверное хранилище сессии:
 app.config['SESSION_TYPE'] = 'filesystem'  # или 'redis', если у тебя есть Redis
 app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
+
 Session(app)
 
 LESSON_PATH = os.path.join("static", "lessons")  # Папка с HTML-уроками
@@ -63,6 +66,10 @@ def embed_full():
 @app.after_request
 def allow_iframe(response):
     response.headers["X-Frame-Options"] = "ALLOWALL"
+    response.headers["Access-Control-Allow-Origin"] = "https://lernen.language-monster.com"  # ВАЖНО: укажи точный домен портала
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST"
     return response
 
 # Функция загрузки текста урока
