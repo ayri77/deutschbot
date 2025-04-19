@@ -9,6 +9,7 @@ import chardet
 
 from flask_session import Session
 from urllib.parse import unquote, quote
+from flask import Response
 
 # Загружаем API-ключ из .env
 env_path = Path(__file__).parent / ".env"
@@ -162,6 +163,7 @@ def ask():
     try:
         data = request.get_json()
         question = data.get("question")
+        stream = data.get("stream", False)  # streming
 
         # Берём сохранённый текст и тему из сессии        
         topic = session.get('chat_topic', 'Немецкий язык')  # важно использовать chat_topic
@@ -189,11 +191,31 @@ def ask():
         for msg in session.get('chat_history', []):
             print(f"{msg['role']}: {msg['content'][:100]}")
 
+        if stream:
+            print("🔁 Включён режим stream")
+            def generate():
+                try:
+                    response = client.chat.completions.create(
+                        model="gpt-4",
+                        messages=chat_history,
+                        stream=True
+                    )
+                    for chunk in response:
+                        text = chunk.choices[0].delta.content or ""
+                        if text:
+                            yield text
+                except Exception as e:
+                    print("Ошибка во время stream:", e)
+                    yield "[STREAM ERROR]"
+
+            return Response(generate(), content_type='text/plain')  # или 'text/event-stream' — зависит от клиента
+        
+        print("📦 Ответ без stream")
 
         response = client.chat.completions.create(
             model="gpt-4",
             messages=chat_history
-        )  
+        ) 
 
         answer = response.choices[0].message.content
 

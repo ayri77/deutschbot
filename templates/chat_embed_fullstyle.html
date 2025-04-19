@@ -12,33 +12,38 @@
 </head>
 <body>
     <div id="chat-container">
-	
 		<div id="chat-tab">
-		  <div id="chat-wrapper">
-			<div id="chat-bot-mood">
-			  <div id="chat-bot-mood-icon"></div>
-			  <div id="chat-bot-mood-label">
-				<h1 id="chat-bot-mood-text">Chatbot is feeling</h1>
-				<h1 id="chat-bot-mood-value">Mood</h1>
-			  </div>
-			</div>
-			<div id="letter-pool"></div>
-			<div id="temp-letter-pool"></div>
-			<div id="letter-overlay"></div>
-			<div id="chat-message-window">
-			  <div id="message-input-wrapper">
-				<div id="message-input">
-				  <textarea id="message-input-field" placeholder="Введите сообщение..."></textarea>
-				  <div id="send-message-button">
-					<i class="fas fa-arrow-alt-circle-right"></i>
-				  </div>
+		  	<div id="chat-wrapper">
+				<div id="chat-bot-mood">
+					<div id="chat-bot-mood-icon"></div>
+					<div id="chat-bot-mood-label">
+						<h1 id="chat-bot-mood-text">Chatbot is feeling</h1>
+						<h1 id="chat-bot-mood-value">Mood</h1>
+					</div>
 				</div>
-			  </div>
-			  <div id="chat-message-column-wrapper" class="scroll-bar">
-				<div id="chat-message-column" class="static"></div>
-			  </div>
-			</div>
-		  </div>
+				<div id="letter-pool"></div>
+				<div id="temp-letter-pool"></div>
+				<div id="letter-overlay"></div>
+				<div id="chat-message-window">
+					<div id="chat-message-column-wrapper" class="scroll-bar">
+						<div id="chat-message-column" class="static">
+						</div>
+						<div id="typing-indicator" class="typing-indicator hidden">
+							<p class="typing">
+								<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span> Chatbot typing...
+							</p>
+						</div>				
+						<div id="message-input-wrapper">
+							<div id="message-input">
+								<textarea id="message-input-field" placeholder="Введите сообщение..."></textarea>
+								<div id="send-message-button">
+									<i class="fas fa-arrow-alt-circle-right"></i>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+		  	</div>
 		</div>
 		
 								
@@ -84,8 +89,7 @@
 		
         function formatText(text) {
             return text.replace(/\n/g, "<br>");
-        }		
-		
+        }				
 
     </script>
 	<script src="{{ url_for('static', filename='js/chat.js') }}"></script>

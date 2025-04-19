@@ -1,3 +1,15 @@
+// Новый параметр для переключения режима стриминга
+const USE_STREAMING = true;
+
+function showTypingIndicator(show) {
+  const el = document.getElementById("typing-indicator");
+  if (!el) return;
+
+  el.classList.toggle("hidden", !show);
+
+  if (show) scrollToBottomOfMessages();
+}
+
 const topic = new URLSearchParams(window.location.search).get("topic") || "Немецкий язык";
 
 // Вспомогательная функция для сокращения записи document.getElementById
@@ -454,30 +466,115 @@ const getChatbotMessageText = () => {
   }
 }
 
-const sendChatbotMessage = (userMessage) => {
-  fetch('/ask', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      question: userMessage,
-      topic: topic  // Передаем тему урока
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
-    const botMessage = data.answer;
-    STATE.isChatBotSendingMessage = true;
-    addChatMessage(botMessage, true);
-    STATE.chatbotMessageIndex++;
-    setTimeout(() => {
+const sendChatbotMessage = async (userMessage) => {
+  showTypingIndicator(true);
+  if (USE_STREAMING) {
+    let result = '';
+    try {
+      const response = await fetch('/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: userMessage,
+          topic: topic,
+          stream: true
+        })
+      });
+
+      if (!response.ok || !response.body) throw new Error('No stream body');
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let result = '';
+      const message = createChatMessage('', true);
+      CHAT_MESSAGE_COLUMN.appendChild(message);
+      const content = message.getElementsByClassName('content')[0];
+      const contentText = content.getElementsByClassName('text')[0];
+      const profileIcon = message.getElementsByClassName('profile-icon')[0];
+
+      removeClass(profileIcon, 'invisible');
+      removeClass(content, 'invisible');
+      removeClass(contentText, 'invisible');
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+      
+        const chunk = value ? decoder.decode(value, { stream: true }) : "";
+        for (let char of chunk) {
+          result += char;
+      
+          const span = document.createElement('span');
+          span.textContent = char;
+          span.dataset.letter = char;
+          contentText.appendChild(span);
+      
+          // 👇 Запуск анимации на добавленную букву
+          const targetLetter = findLetterInPool(char);
+          const letterRect = span.getBoundingClientRect();
+          const wrapperRect = CHAT_MESSAGE_COLUMN_WRAPPER.getBoundingClientRect();
+      
+          const correctedFinalPos = {
+            top: letterRect.top - wrapperRect.top + CHAT_MESSAGE_COLUMN_WRAPPER.scrollTop,
+            left: letterRect.left - wrapperRect.left
+          };
+      
+          if (targetLetter) {
+            animateOverlayLetter(targetLetter, contentText, correctedFinalPos, true);
+          } else {
+            const tempLetter = createLetter('temp-letter', char);
+            const pos = getRandPosOffScreen();
+            addClass(tempLetter, 'invisible');
+            setElPos(tempLetter, pos.x, pos.y);
+            TEMP_LETTER_POOL.appendChild(tempLetter);
+      
+            animateOverlayLetter(tempLetter, contentText, correctedFinalPos, true);
+            setTimeout(() => {
+              removeChild(TEMP_LETTER_POOL, tempLetter);
+            }, 100);
+          }
+      
+          scrollToBottomOfMessages();
+          await new Promise(resolve => setTimeout(resolve, 5)); // 👈 плавная подача
+        }
+      }
+      showTypingIndicator(false);  // ⬅️ добавляем сюда
+      
+      animateMessageLetters(message, true);
+      setTimeout(() => replenishLetterPool(STATE.nLetterSets), 2500);
+    } catch (error) {
+      console.error('Streaming error:', error);
+      if (!result.trim()) {
+        addMessage("Извините, произошла ошибка при получении ответа.", "received");
+      }      
+    } finally {      
       STATE.isChatBotSendingMessage = false;
       toggleInput();
-    }, 2000);
-  })
-  .catch(err => console.error(err));
+    }
+  } else {
+    fetch('/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question: userMessage,
+        topic: topic
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      const botMessage = data.answer;
+      STATE.isChatBotSendingMessage = true;
+      addChatMessage(botMessage, true);
+      STATE.chatbotMessageIndex++;
+    })
+    .catch(err => console.error(err))
+    .finally(() => {
+      showTypingIndicator(false);
+      STATE.isChatBotSendingMessage = false;
+      toggleInput();
+    });
+  }
 };
-
-
 
 const sendUserMessage = () => {
   const userMessage = MESSAGE_INPUT_FIELD.value;
@@ -568,10 +665,11 @@ const setMoodInterval = time => {
 }
 
 MESSAGE_INPUT_FIELD.onkeypress = e => {
-  if(checkIfInputFieldHasVal() && e.key === 'Enter'){
-    removeClass(MESSAGE_INPUT, 'send-enabled')
-    if(canSendMessage()){
-      onEnterPress(e)
+  if (e.key === 'Enter') {
+    e.preventDefault(); // ⬅️ предотвратит перенос строки
+    if (checkIfInputFieldHasVal() && canSendMessage()) {
+      removeClass(MESSAGE_INPUT, 'send-enabled');
+      onEnterPress(e);
     }
   }
 }
@@ -583,6 +681,9 @@ MESSAGE_INPUT_FIELD.onkeyup = () => {
 MESSAGE_INPUT_FIELD.oncut = () => toggleInput()
 
 window.onload = () => init()
+
+const sendButton = document.getElementById('send-message-button');
+sendButton.addEventListener('click', sendUserMessage);
 
 window.onfocus = () => resetLetterPool()
 
