@@ -340,13 +340,13 @@ def tts():
         return jsonify({"error": "TTS synthesis failed"}), 500
 
 def synthesize_speech(text, lang="de-DE", gender=texttospeech.SsmlVoiceGender.NEUTRAL):
-    client = texttospeech.TextToSpeechClient()
+    client = texttospeech.TextToSpeechClient(credentials=credentials)  # 👉 вот сюда передаём!
 
     synthesis_input = texttospeech.SynthesisInput(text=text)
 
     voice_name = {
-        "de-DE": "de-DE-Wavenet-B",  # мужской, чёткий немецкий
-        "ru-RU": "ru-RU-Wavenet-C",  # нормальный русский, без жести
+        "de-DE": "de-DE-Wavenet-B",
+        "ru-RU": "ru-RU-Wavenet-C",
     }.get(lang, None)
 
     voice = texttospeech.VoiceSelectionParams(
@@ -360,10 +360,12 @@ def synthesize_speech(text, lang="de-DE", gender=texttospeech.SsmlVoiceGender.NE
     )
 
     response = client.synthesize_speech(
-        input=synthesis_input, voice=voice, audio_config=audio_config
+        input=synthesis_input,
+        voice=voice,
+        audio_config=audio_config
     )
 
-    return response.audio_content  # байтовый mp3
+    return response.audio_content
 
 if __name__ == "__main__":
     app.run(debug=True)
