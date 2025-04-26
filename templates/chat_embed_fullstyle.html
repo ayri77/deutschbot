@@ -32,14 +32,27 @@
 							<p class="typing">
 								<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span> Chatbot typing...
 							</p>
-						</div>				
+						</div>
+						<div id="quick-options" class="hidden">
+							<button data-msg="Объясни грамматику">📘 Объясни грамматику...</button>
+							<button data-msg="Покажи примеры">📄 Приведи примеры...</button>
+							<button data-msg="Проверь мои знания">🧠 Проведи тестирование...</button>
+							<button data-msg="У меня вопрос">❓ Хочу задать вопрос...</button>
+							<button id="hide-options">✖️ Скрыть</button>
+						</div>										
 						<div id="message-input-wrapper">
 							<div id="message-input">
 								<textarea id="message-input-field" placeholder="Введите сообщение..."></textarea>
 								<div id="send-message-button">
 									<i class="fas fa-arrow-alt-circle-right"></i>
 								</div>
+								<div id="voice-input-button" title="Голосовой ввод">
+									<i class="fas fa-microphone"></i>
+								</div>								
 							</div>
+							<div id="input-toolbar">
+								<button id="toggle-options-button" class="show-quick-options">Показать сценарии</button>
+							</div>						
 						</div>
 					</div>
 				</div>

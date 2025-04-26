@@ -1,6 +1,9 @@
 // Новый параметр для переключения режима стриминга
 const USE_STREAMING = true;
 
+// Новый параметр для включения/выключения голосового вывода
+const USE_SPEECH_OUTPUT = true;
+
 function showTypingIndicator(show) {
   const el = document.getElementById("typing-indicator");
   if (!el) return;
@@ -434,8 +437,8 @@ const addChatMessage = (text, isReceived) => {
       removeClass(content, 'invisible')
       setTimeout(() => {
         animateMessageLetters(message, isReceived)
-        setTimeout(() => replenishLetterPool(STATE.nLetterSets), 2500)
-      }, 1000)
+        setTimeout(() => replenishLetterPool(STATE.nLetterSets), 500)
+      }, 300)
     }, 250)
   }, 250)
 }
@@ -496,24 +499,50 @@ const sendChatbotMessage = async (userMessage) => {
       removeClass(content, 'invisible');
       removeClass(contentText, 'invisible');
 
+      let htmlStarted = false;
+      let inTag = false;
+      let tagBuffer = "";
+      
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
       
         const chunk = value ? decoder.decode(value, { stream: true }) : "";
+      
+        if (chunk.includes("<|html|>")) {
+          htmlStarted = true;
+          result += chunk;
+          continue;
+        }
+      
         for (let char of chunk) {
           result += char;
       
-          const span = document.createElement('span');
+          if (htmlStarted) continue;
+      
+          if (char === "<") {
+            inTag = true;
+            tagBuffer = "<";
+            continue;
+          }
+      
+          if (inTag) {
+            tagBuffer += char;
+            if (char === ">") {
+              inTag = false;
+              tagBuffer = "";
+            }
+            continue;
+          }
+      
+          const span = document.createElement("span");
           span.textContent = char;
           span.dataset.letter = char;
           contentText.appendChild(span);
       
-          // 👇 Запуск анимации на добавленную букву
           const targetLetter = findLetterInPool(char);
           const letterRect = span.getBoundingClientRect();
           const wrapperRect = CHAT_MESSAGE_COLUMN_WRAPPER.getBoundingClientRect();
-      
           const correctedFinalPos = {
             top: letterRect.top - wrapperRect.top + CHAT_MESSAGE_COLUMN_WRAPPER.scrollTop,
             left: letterRect.left - wrapperRect.left
@@ -522,9 +551,9 @@ const sendChatbotMessage = async (userMessage) => {
           if (targetLetter) {
             animateOverlayLetter(targetLetter, contentText, correctedFinalPos, true);
           } else {
-            const tempLetter = createLetter('temp-letter', char);
+            const tempLetter = createLetter("temp-letter", char);
             const pos = getRandPosOffScreen();
-            addClass(tempLetter, 'invisible');
+            addClass(tempLetter, "invisible");
             setElPos(tempLetter, pos.x, pos.y);
             TEMP_LETTER_POOL.appendChild(tempLetter);
       
@@ -535,13 +564,24 @@ const sendChatbotMessage = async (userMessage) => {
           }
       
           scrollToBottomOfMessages();
-          await new Promise(resolve => setTimeout(resolve, 5)); // 👈 плавная подача
+          await new Promise((resolve) => setTimeout(resolve, 5));
         }
       }
-      showTypingIndicator(false);  // ⬅️ добавляем сюда
       
-      animateMessageLetters(message, true);
-      setTimeout(() => replenishLetterPool(STATE.nLetterSets), 2500);
+      htmlMarker = "<|html|>"
+      showTypingIndicator(false);
+      // Заменим побуквенные спаны на полноценный HTML-ответ
+      if (result.includes(htmlMarker)) {
+        const html = result.split(htmlMarker)[1];
+        contentText.innerHTML = html;
+        addSpeakExamplesButton(content);
+      } else {
+        contentText.innerHTML = result;
+        // 🔕 Кнопку не добавляем — нет форматирования
+      }
+      
+      //animateMessageLetters(message, true);
+      //setTimeout(() => replenishLetterPool(STATE.nLetterSets), 1500);
     } catch (error) {
       console.error('Streaming error:', error);
       if (!result.trim()) {
@@ -612,6 +652,7 @@ const init = () => {
   STATE.isChatBotSendingMessage = true;
   addChatMessage(greetingMessage, true);
   STATE.chatbotMessageIndex++;
+  showQuickOptions();
   
   setTimeout(() => {
     STATE.isChatBotSendingMessage = false;
@@ -619,6 +660,10 @@ const init = () => {
   }, 2000);
 
   setMoodInterval(getRandMoodInterval());
+
+  if (STATE.chatbotMessageIndex === 0) {
+    showWelcomeMessageAndOptions();
+  }  
 };
 
 let resetTimeout = null
@@ -680,7 +725,37 @@ MESSAGE_INPUT_FIELD.onkeyup = () => {
 
 MESSAGE_INPUT_FIELD.oncut = () => toggleInput()
 
+// Функция для определения языка текста
+function detectLanguage(text) {
+  const germanWords = ["du", "bist", "nicht", "haben", "sein", "und", "ich", "wir", "ihr", "sie"];
+  const lowercase = text.toLowerCase();
+  const hits = germanWords.filter(word => lowercase.includes(word));
+  return hits.length >= 2 ? "de-DE" : "ru-RU";
+}
+
+// Функция для синтеза речи
+function speak(text, lang = "de-DE") {
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = lang;
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  speechSynthesis.speak(utterance);
+}
+
 window.onload = () => init()
+
+document.getElementById("quick-options").addEventListener("click", (e) => {
+  if (e.target.tagName === "BUTTON" && e.target.dataset.msg) {
+    const message = e.target.dataset.msg;
+    MESSAGE_INPUT_FIELD.value = message;
+    sendUserMessage();
+    hideQuickOptions();
+  }
+
+  if (e.target.id === "hide-options") {
+    hideQuickOptions();
+  }
+});
 
 const sendButton = document.getElementById('send-message-button');
 sendButton.addEventListener('click', sendUserMessage);
@@ -733,3 +808,122 @@ messageInput.addEventListener('input', () => {
   messageInput.style.height = 'auto'; // Сброс текущей высоты
   messageInput.style.height = messageInput.scrollHeight + 'px'; // Установка новой
 });
+
+/* голосовой ввод-вывод */
+
+function showWelcomeMessageAndOptions() {
+  const greetingMessage = "Привет! Я помогу тебе с этим уроком. Вот что я умею:\n— Объяснить грамматику\n— Показать примеры\n— Провести тестирование\nС чего начнём?";
+  addChatMessage(greetingMessage, true);
+  showQuickOptions();
+}
+
+const quickOptions = document.getElementById("quick-options");
+const toggleOptionsButton = document.getElementById("toggle-options-button");
+
+function showQuickOptions() {
+  quickOptions.classList.remove("hidden");
+  if (toggleOptionsButton) toggleOptionsButton.textContent = "Скрыть сценарии";
+}
+
+function hideQuickOptions() {
+  quickOptions.classList.add("hidden");
+  if (toggleOptionsButton) toggleOptionsButton.textContent = "Показать сценарии";
+}
+
+toggleOptionsButton.onclick = () => {
+  if (quickOptions.classList.contains("hidden")) {
+    showQuickOptions();
+  } else {
+    hideQuickOptions();
+  }
+};
+
+const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+recognition.lang = navigator.language || "ru-RU" || "de-DE"; // например, "de-DE"
+recognition.interimResults = false;
+recognition.maxAlternatives = 1;
+
+recognition.onresult = (event) => {
+  const transcript = event.results[0][0].transcript;
+  console.log("🎤 Распознано:", transcript);
+  MESSAGE_INPUT_FIELD.value = transcript;
+  toggleInput(); // обновляем активность кнопки отправки
+};
+
+recognition.onerror = (event) => {
+  console.error("🎤 Ошибка распознавания:", event.error);
+};
+
+recognition.onend = () => {
+  console.log("🎤 Распознавание завершено.");
+};
+
+document.getElementById("voice-input-button").onclick = () => {
+  recognition.start();
+};
+
+// Функция для добавления кнопки "проговаривания" примеров из сообщения
+function addSpeakExamplesButton(messageContent) {
+  const button = document.createElement("button");
+  button.textContent = "🔊 Произнести примеры";
+  button.style.marginTop = "10px";
+  button.style.padding = "5px 10px";
+  button.style.fontSize = "14px";
+  button.style.cursor = "pointer";
+ 
+  button.onclick = () => {
+    const examples = extractExamplesFromMessage(messageContent);
+    if (examples.length > 0) {
+      speakExamplesSequentially(examples);
+    } else {
+      alert("Примеры для произношения не найдены.");
+    }
+  };
+
+  messageContent.appendChild(button);
+}
+
+// Функция для извлечения примеров из текста сообщения
+function extractExamplesFromMessage(messageContent) {
+  const examples = [];
+  const blocks = messageContent.querySelectorAll("div.example");
+
+  blocks.forEach(div => {
+    const de = div.querySelector('span[lang="de"]')?.textContent.trim() || "";
+    const ru = div.querySelector('span[lang="ru"]')?.textContent.trim() || "";
+    if (de || ru) {
+      examples.push({ de, ru });
+    }
+  });
+
+  return examples;
+}
+
+
+async function speakExamplesSequentially(examples) {
+  for (let example of examples) {
+    if (example.de) await speakWithGoogleTTS(example.de, "de-DE");
+    if (example.ru) await speakWithGoogleTTS(example.ru, "ru-RU");
+  }
+}
+
+
+// Функция для отправки текста на сервер Google TTS
+function speakWithGoogleTTS(text, lang = 'de-DE') {
+  return fetch('/tts', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ text, lang })
+  })
+  .then(res => res.blob())
+  .then(blob => {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = resolve;
+      audio.onerror = reject;
+      audio.play();
+    });
+  })
+  .catch(err => console.error("TTS error:", err));
+}

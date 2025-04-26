@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify, session, url_for
+from flask import send_file
 import openai
 import os
 from dotenv import load_dotenv
@@ -11,10 +12,25 @@ from flask_session import Session
 from urllib.parse import unquote, quote
 from flask import Response
 
+from markdown import markdown
+from google.oauth2 import service_account
+from google.cloud import texttospeech
+import io
+
 # Загружаем API-ключ из .env
 env_path = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=env_path, override=True)
 openai_key = os.getenv("OPENAI_API_KEY").strip()
+
+# ключи - гугл
+if os.environ.get("GOOGLE_ENV") == "render":
+    # используем переменную среды
+    credentials_info = json.loads(os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"])
+    credentials = service_account.Credentials.from_service_account_info(credentials_info)
+else:
+    # используем локальный файл
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = r"C:\Users\pbori\OneDrive\Документи\Phyton\Google keys\chatbot\propane-abbey-456722-s5-2b194ffb3411.json"
+    credentials = None  # default load via env
 
 #openai.api_key = openai_key
 client = openai.OpenAI(api_key=openai_key)
@@ -111,18 +127,6 @@ def load_lesson_html(topic):
 
     return str(soup.body)    
  
-# Функция общения с ChatGPT
-#def ask_chatgpt(question, topic):
-#    messages = [
-#        {"role": "system", "content": f"Ты преподаватель немецкого языка. Помогаешь ученикам изучать '{topic}'."},
-#        {"role": "user", "content": question}
-#    ]
-#    response = client.chat.completions.create(
-#        model="gpt-4",
-#        messages=messages
-#    )    
-#    return response.choices[0].message.content
-
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -181,9 +185,28 @@ def ask():
         # Если истории нет, создаём первую запись с текстом урока
         if 'chat_history' not in session:
             session['chat_history'] = [
-                {"role": "system", "content": f"Ты преподаватель немецкого языка. Ты ведешь диалог с учащимся. Тема урока '{topic}'. Используй для ответов следующий текст урока:\n{lesson_text}"}
-            ]
+                {
+                    "role": "system",
+                    "content": f"""
+                    Ты преподаватель немецкого языка. Ты ведешь диалог с учащимся.
+                    Тема урока: '{topic}'.
 
+                    Используй для ответов следующий текст урока:
+                    {lesson_text}
+
+                    🧾 Пожалуйста, оформляй ответы аккуратно:
+                    - Используй списки (`1.`, `2.`, `-`) там, где это уместно.
+                    - Выделяй важные слова с помощью **жирного текста**.
+                    - Примеры всегда оборачивай в отдельный HTML-блок:
+                    <div class="example">Du arbeitest. – Ты работаешь.</div>
+                    - Если в ответе есть примеры, оборачивай каждую пару "немецкий — перевод" в тег <div class="example">.
+                    - Немецкую часть оборачивай в <span lang="de">…</span>, а русскую — в <span lang="ru">…</span>
+                    - Пример должен содержать как немецкий, так и русский вариант (или перевод).
+                    - Не добавляй лишних приветствий и фраз, просто переходи к делу.
+                    """
+                }
+            ]
+        # Добавляем вопрос пользователя в историю            
         chat_history = session['chat_history']      
         chat_history.append({"role": "user", "content": question})
 
@@ -200,10 +223,19 @@ def ask():
                         messages=chat_history,
                         stream=True
                     )
+                    collected = []
                     for chunk in response:
                         text = chunk.choices[0].delta.content or ""
                         if text:
-                            yield text
+                            collected.append(text)                            
+                            yield text  # для побуквенной анимации
+
+                    # После окончания — ещё раз отправим HTML-форму (можно в <MARKER> завернуть)
+                    full_text = ''.join(collected)
+                    html_version = markdown(full_text)
+                    yield f"<|html|>{html_version}"
+                    print("📨 Ответ в Markdown:\n", full_text)
+                    print("🧾 Ответ в HTML:\n", html_version)                    
                 except Exception as e:
                     print("Ошибка во время stream:", e)
                     yield "[STREAM ERROR]"
@@ -217,14 +249,15 @@ def ask():
             messages=chat_history
         ) 
 
-        answer = response.choices[0].message.content
+        answer_raw = response.choices[0].message.content
+        answer_html = markdown(answer_raw)
 
-        chat_history.append({"role": "assistant", "content": answer})        
+        chat_history.append({"role": "assistant", "content": answer_raw})        
         session['chat_history'] = chat_history        
 
-        print(f"Ответ от ChatGPT: {answer}")
+        print(f"Ответ от ChatGPT: {answer_html}")
 
-        return jsonify({"answer": answer})
+        return jsonify({"answer": answer_html})
 
     except Exception as e:
         print(f"Ошибка: {str(e)}")
@@ -287,5 +320,50 @@ def generate_test():
         print(f"❌ Ошибка генерации теста: {str(e)}")
         return jsonify({"error": "Ошибка сервера"}), 500
     
+# text-to-speech
+@app.route("/tts", methods=["POST"])
+def tts():
+    try:
+        data = request.get_json()
+        text = data.get("text", "")
+        lang = data.get("lang", "de-DE")
+
+        audio_content = synthesize_speech(text, lang)
+        return send_file(
+            io.BytesIO(audio_content),
+            mimetype="audio/mpeg",
+            as_attachment=False,
+            download_name="output.mp3"
+        )
+    except Exception as e:
+        print("TTS Error:", e)
+        return jsonify({"error": "TTS synthesis failed"}), 500
+
+def synthesize_speech(text, lang="de-DE", gender=texttospeech.SsmlVoiceGender.NEUTRAL):
+    client = texttospeech.TextToSpeechClient()
+
+    synthesis_input = texttospeech.SynthesisInput(text=text)
+
+    voice_name = {
+        "de-DE": "de-DE-Wavenet-B",  # мужской, чёткий немецкий
+        "ru-RU": "ru-RU-Wavenet-C",  # нормальный русский, без жести
+    }.get(lang, None)
+
+    voice = texttospeech.VoiceSelectionParams(
+        language_code=lang,
+        name=voice_name,
+        ssml_gender=gender
+    )
+
+    audio_config = texttospeech.AudioConfig(
+        audio_encoding=texttospeech.AudioEncoding.MP3
+    )
+
+    response = client.synthesize_speech(
+        input=synthesis_input, voice=voice, audio_config=audio_config
+    )
+
+    return response.audio_content  # байтовый mp3
+
 if __name__ == "__main__":
     app.run(debug=True)
