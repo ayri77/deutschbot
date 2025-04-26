@@ -1,9 +1,10 @@
 Flask
-flask-session
+Flask-Session
 python-dotenv
 openai
 beautifulsoup4
 chardet
 gunicorn
 markdown
-
+google-cloud-texttospeech
+google-auth
