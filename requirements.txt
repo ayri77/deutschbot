@@ -5,4 +5,5 @@ openai
 beautifulsoup4
 chardet
 gunicorn
+markdown
 
