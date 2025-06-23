@@ -18,8 +18,9 @@ from google.cloud import texttospeech
 import io
 
 # Загружаем API-ключ из .env
-env_path = Path(__file__).parent / ".env"
-load_dotenv(dotenv_path=env_path, override=True)
+if os.environ.get("GOOGLE_ENV") != "render":
+    env_path = Path(__file__).parent / ".env"
+    load_dotenv(dotenv_path=env_path, override=True)
 openai_key = os.getenv("OPENAI_API_KEY").strip()
 
 # ключи - гугл
