@@ -92,6 +92,24 @@ def get_ai_model():
         print(f"🔄 Переключаемся на {AI_MODEL_FALLBACK}")
         return AI_MODEL_FALLBACK
 
+def get_model_params(model_name):
+    """
+    Возвращает параметры для конкретной модели
+    """
+    if model_name == "gpt-5":
+        # GPT-5 не поддерживает temperature и другие параметры
+        return {
+            "max_tokens": 1000
+        }
+    else:
+        # Для других моделей используем полный набор параметров
+        return {
+            "temperature": 0.7,
+            "max_tokens": 1000,
+            "presence_penalty": 0.1,
+            "frequency_penalty": 0.1
+        }
+
 def log_model_usage(model_name, response_time=None):
     """
     Логирует использование модели для мониторинга
@@ -320,14 +338,13 @@ def ask():
             def generate():
                 try:
                     model = get_ai_model()
+                    params = get_model_params(model)
+                    params["stream"] = True
+                    
                     response = client.chat.completions.create(
                         model=model,
                         messages=chat_history,
-                        stream=True,
-                        temperature=0.7,  # Контролируем креативность
-                        max_completion_tokens=1000,  # Ограничиваем длину ответа
-                        presence_penalty=0.1,  # Поощряем разнообразие
-                        frequency_penalty=0.1   # Уменьшаем повторения
+                        **params
                     )
                     collected = []
                     for chunk in response:
@@ -354,13 +371,12 @@ def ask():
         start_time = time.time()
         
         model = get_ai_model()
+        params = get_model_params(model)
+        
         response = client.chat.completions.create(
             model=model,
             messages=chat_history,
-            temperature=0.7,  # Контролируем креативность
-            max_completion_tokens=1000,  # Ограничиваем длину ответа
-            presence_penalty=0.1,  # Поощряем разнообразие
-            frequency_penalty=0.1   # Уменьшаем повторения
+            **params
         )
         
         response_time = time.time() - start_time
@@ -422,11 +438,14 @@ def generate_test():
 
     try:
         model = get_ai_model()
+        params = get_model_params(model)
+        # Для тестов используем больше токенов
+        params["max_tokens"] = 1500
+        
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "system", "content": prompt}],
-            temperature=0.3,  # Низкая температура для более точных ответов
-            max_completion_tokens=1500   # Больше токенов для тестов
+            **params
         )
 
         test_data = response.choices[0].message.content
