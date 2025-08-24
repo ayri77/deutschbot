@@ -97,9 +97,9 @@ def get_model_params(model_name):
     Возвращает параметры для конкретной модели
     """
     if model_name == "gpt-5":
-        # GPT-5 не поддерживает temperature и другие параметры
+        # GPT-5 использует max_completion_tokens вместо max_tokens
         return {
-            "max_tokens": 1000
+            "max_completion_tokens": 1000
         }
     else:
         # Для других моделей используем полный набор параметров
@@ -440,7 +440,10 @@ def generate_test():
         model = get_ai_model()
         params = get_model_params(model)
         # Для тестов используем больше токенов
-        params["max_tokens"] = 1500
+        if model == "gpt-5":
+            params["max_completion_tokens"] = 1500
+        else:
+            params["max_tokens"] = 1500
         
         response = client.chat.completions.create(
             model=model,
