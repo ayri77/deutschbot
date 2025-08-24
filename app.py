@@ -37,13 +37,13 @@ else:
 client = openai.OpenAI(api_key=openai_key)
 
 # Настройки модели - легко изменить
-AI_MODEL = "gpt-5"  # Текущая модель - GPT-5
-AI_MODEL_FALLBACK = "gpt-4o"  # Резервная модель
+AI_MODEL = "gpt-4o"  # Текущая модель - GPT-4o (стабильная)
+AI_MODEL_FALLBACK = "gpt-4o-mini"  # Резервная модель
 
 # Доступные модели:
-# - "gpt-5" (текущая, самая новая и мощная)
-# - "gpt-4o" (быстрая и доступная альтернатива)
+# - "gpt-4o" (текущая, быстрая и стабильная)
 # - "gpt-4o-mini" (более дешевая альтернатива)
+# - "gpt-5" (требует верификации организации для stream)
 # - "gpt-4-turbo" (старая версия)
 
 app = Flask(__name__, static_folder="static")
