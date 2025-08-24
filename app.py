@@ -325,7 +325,7 @@ def ask():
                         messages=chat_history,
                         stream=True,
                         temperature=0.7,  # Контролируем креативность
-                        max_tokens=1000,  # Ограничиваем длину ответа
+                        max_completion_tokens=1000,  # Ограничиваем длину ответа
                         presence_penalty=0.1,  # Поощряем разнообразие
                         frequency_penalty=0.1   # Уменьшаем повторения
                     )
@@ -358,7 +358,7 @@ def ask():
             model=model,
             messages=chat_history,
             temperature=0.7,  # Контролируем креативность
-            max_tokens=1000,  # Ограничиваем длину ответа
+            max_completion_tokens=1000,  # Ограничиваем длину ответа
             presence_penalty=0.1,  # Поощряем разнообразие
             frequency_penalty=0.1   # Уменьшаем повторения
         )
@@ -426,7 +426,7 @@ def generate_test():
             model=model,
             messages=[{"role": "system", "content": prompt}],
             temperature=0.3,  # Низкая температура для более точных ответов
-            max_tokens=1500   # Больше токенов для тестов
+            max_completion_tokens=1500   # Больше токенов для тестов
         )
 
         test_data = response.choices[0].message.content
