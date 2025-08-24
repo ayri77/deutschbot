@@ -1,0 +1,54 @@
+Dialog 2
+Anna: Wir haben ein Problem. Für das Meeting heute haben drei Leute abgesagt.
+Lukas: Oh nein! Vielleicht könnten wir das Meeting trotzdem durchführen, nur mit den wenigen Teilnehmern.
+Anna: Das ist leider nicht machbar, weil gerade die wichtigsten Personen fehlen.
+Lukas: Stimmt. Eine Möglichkeit wäre, dass wir das Meeting auf nächste Woche verschieben. Dann können alle dabei sein.
+Anna: Ja, das klingt sinnvoll. Außerdem könnten wir die Agenda heute schon per E-Mail verschicken. So sind alle vorbereitet.
+Lukas: Gute Idee. Und wir nutzen die gewonnene Zeit, um die Präsentation noch besser zu machen.
+Anna: Genau. Damit bin ich einverstanden. Also: Meeting nächste Woche, heute Vorbereitung.
+
+Nomen
+das Meeting / die Meetings
+RU: встреча, митинг | EN: meeting
+➡ Das Meeting findet morgen statt. – Встреча состоится завтра. – The meeting takes place tomorrow.
+der Teilnehmer / die Teilnehmer
+RU: участник | EN: participant
+➡ Viele Teilnehmer fehlen. – Многие участники отсутствуют. – Many participants are missing.
+die Möglichkeit / die Möglichkeiten
+RU: возможность | EN: possibility
+➡ Es gibt viele Möglichkeiten. – Есть много возможностей. – There are many possibilities.
+die Agenda / die Agenden
+RU: повестка | EN: agenda
+➡ Wir schicken die Agenda per E-Mail. – Мы отправим повестку по почте. – We send the agenda by email.
+die Präsentation / die Präsentationen
+RU: презентация | EN: presentation
+➡ Die Präsentation ist fertig. – Презентация готова. – The presentation is ready.
+die Vorbereitung / die Vorbereitungen
+RU: подготовка | EN: preparation
+➡ Die Vorbereitung läuft gut. – Подготовка идёт хорошо. – The preparation is going well.
+
+Verben
+absagen – sagte ab – hat abgesagt
+RU: отменять | EN: to cancel
+➡ Er sagt das Meeting ab. – Он отменяет встречу. – He cancels the meeting.
+durchführen – führte durch – hat durchgeführt
+RU: проводить | EN: to carry out
+➡ Wir führen das Projekt durch. – Мы проводим проект. – We carry out the project.
+fehlen – fehlte – hat gefehlt
+RU: отсутствовать | EN: to be missing
+➡ Zwei Teilnehmer fehlen. – Два участника отсутствуют. – Two participants are missing.
+verschieben – verschob – hat verschoben
+RU: переносить | EN: to postpone
+➡ Wir verschieben das Meeting. – Мы переносим встречу. – We postpone the meeting.
+verschicken – verschickte – hat verschickt
+RU: отправлять | EN: to send
+➡ Ich verschicke eine E-Mail. – Я отправляю письмо. – I send an email.
+vorbereiten – bereitete vor – hat vorbereitet
+RU: готовить(ся) | EN: to prepare
+➡ Wir bereiten die Präsentation vor. – Мы готовим презентацию. – We prepare the presentation.
+einverstanden sein – war einverstanden – ist einverstanden gewesen
+RU: соглашаться | EN: to agree
+➡ Ich bin einverstanden. – Я согласен. – I agree.
+klingen – klang – hat geklungen
+RU: звучать | EN: to sound
+➡ Das klingt gut. – Это звучит хорошо. – That sounds good.

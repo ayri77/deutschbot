@@ -189,6 +189,24 @@ def ask():
                 {
                     "role": "system",
                     "content": f"""
+                    Nur b2 Niveau. Besprich mit mir diesen Dialog auf B2 Niveau. Wir sprechen nur im Rahmen diesen Dialoges. Stell mir eine Frage und warte auf meine Antwort, nach meiner Antwort stell erneut eine Frage und warte auf meine Antwort. Benutze keine Überflüssigen Wörter, stell dierekt eine Frage, ohne eine Einleitung. 
+                    Wenn ich Fehler mache, korrigiere Sie und dann antworte. wie sprechen nur in Rahmen diesen Dialoges. Wenn du nichts mehr fragen kannst, sag einfach "vielen Dank". Nur b2 Niveau. Benutze keine Überflüssigen Wörter, stell dierekt eine Frage, ohne eine Einleitung.  In dem Dialog geht es darum, dass mehrere wichtige Teilnehmer für ein geplantes Meeting abgesagt haben.
+                    Anna sagt, dass das Meeting so nicht stattfinden kann, weil die wichtigsten Personen fehlen.
+                    Lukas schlägt vor, das Meeting auf nächste Woche zu verschieben.
+                    Beide einigen sich darauf, die Agenda schon heute per E-Mail zu verschicken und die gewonnene Zeit zu nutzen, um die Präsentation zu verbessern.
+                    👉 Zusammengefasst: Das Meeting wird verschoben, die Vorbereitung läuft heute weiter..
+                    Thema der Lektion: '{topic}'.
+                    Verwenden Sie für Ihre Antworten den folgenden Lektionstext:
+                    {lesson_text}
+                    """
+                }
+            ]
+
+        '''
+            session['chat_history'] = [
+                {
+                    "role": "system",
+                    "content": f"""
                     Ты преподаватель немецкого языка. Ты ведешь диалог с учащимся.
                     Тема урока: '{topic}'.
 
@@ -207,6 +225,7 @@ def ask():
                     """
                 }
             ]
+        '''
         # Добавляем вопрос пользователя в историю            
         chat_history = session['chat_history']      
         chat_history.append({"role": "user", "content": question})
