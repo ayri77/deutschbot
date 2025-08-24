@@ -36,6 +36,16 @@ else:
 #openai.api_key = openai_key
 client = openai.OpenAI(api_key=openai_key)
 
+# Настройки модели - легко изменить
+AI_MODEL = "gpt-5"  # Текущая модель - GPT-5
+AI_MODEL_FALLBACK = "gpt-4o"  # Резервная модель
+
+# Доступные модели:
+# - "gpt-5" (текущая, самая новая и мощная)
+# - "gpt-4o" (быстрая и доступная альтернатива)
+# - "gpt-4o-mini" (более дешевая альтернатива)
+# - "gpt-4-turbo" (старая версия)
+
 app = Flask(__name__, static_folder="static")
 app.secret_key = "mysecretkey"
 # Включаем серверное хранилище сессии:
@@ -67,6 +77,28 @@ def detect_lesson_level(topic):
         return "C2"
     else:
         return "B2"  # По умолчанию
+
+def get_ai_model():
+    """
+    Возвращает доступную модель AI с fallback
+    """
+    try:
+        # Проверяем доступность основной модели
+        response = client.models.retrieve(AI_MODEL)
+        print(f"✅ Используем модель: {AI_MODEL}")
+        return AI_MODEL
+    except Exception as e:
+        print(f"⚠️ Модель {AI_MODEL} недоступна: {e}")
+        print(f"🔄 Переключаемся на {AI_MODEL_FALLBACK}")
+        return AI_MODEL_FALLBACK
+
+def log_model_usage(model_name, response_time=None):
+    """
+    Логирует использование модели для мониторинга
+    """
+    print(f"🤖 Модель: {model_name}")
+    if response_time:
+        print(f"⏱️ Время ответа: {response_time:.2f}с")
 
 def create_teacher_prompt(topic, lesson_text, level="B2"):
     """
@@ -287,8 +319,9 @@ def ask():
             print("🔁 Включён режим stream")
             def generate():
                 try:
+                    model = get_ai_model()
                     response = client.chat.completions.create(
-                        model="gpt-4o",  # Используем GPT-4o - последнюю версию
+                        model=model,
                         messages=chat_history,
                         stream=True,
                         temperature=0.7,  # Контролируем креативность
@@ -317,14 +350,21 @@ def ask():
         
         print("📦 Ответ без stream")
 
+        import time
+        start_time = time.time()
+        
+        model = get_ai_model()
         response = client.chat.completions.create(
-            model="gpt-4o",  # Используем GPT-4o - последнюю версию
+            model=model,
             messages=chat_history,
             temperature=0.7,  # Контролируем креативность
             max_tokens=1000,  # Ограничиваем длину ответа
             presence_penalty=0.1,  # Поощряем разнообразие
             frequency_penalty=0.1   # Уменьшаем повторения
-        ) 
+        )
+        
+        response_time = time.time() - start_time
+        log_model_usage(model, response_time) 
 
         answer_raw = response.choices[0].message.content
         answer_html = markdown(answer_raw)
@@ -381,8 +421,9 @@ def generate_test():
     """
 
     try:
+        model = get_ai_model()
         response = client.chat.completions.create(
-            model="gpt-4o",  # Используем GPT-4o - последнюю версию
+            model=model,
             messages=[{"role": "system", "content": prompt}],
             temperature=0.3,  # Низкая температура для более точных ответов
             max_tokens=1500   # Больше токенов для тестов
