@@ -48,6 +48,63 @@ Session(app)
 
 LESSON_PATH = os.path.join("static", "lessons")  # Папка с HTML-уроками
 
+def detect_lesson_level(topic):
+    """
+    Определяет уровень урока на основе названия темы
+    """
+    topic_lower = topic.lower()
+    if any(level in topic_lower for level in ['a1', 'a1.1', 'a1.2']):
+        return "A1"
+    elif any(level in topic_lower for level in ['a2', 'a2.1', 'a2.2']):
+        return "A2"
+    elif any(level in topic_lower for level in ['b1', 'b1.1', 'b1.2']):
+        return "B1"
+    elif any(level in topic_lower for level in ['b2', 'b2.1', 'b2.2']):
+        return "B2"
+    elif any(level in topic_lower for level in ['c1', 'c1.1', 'c1.2']):
+        return "C1"
+    elif any(level in topic_lower for level in ['c2', 'c2.1', 'c2.2']):
+        return "C2"
+    else:
+        return "B2"  # По умолчанию
+
+def create_teacher_prompt(topic, lesson_text, level="B2"):
+    """
+    Создает структурированный промпт для роли преподавателя
+    """
+    return f"""
+    Du bist ein erfahrener Deutschlehrer für das Niveau {level}. Du führst einen strukturierten Dialog mit dem Schüler basierend auf dem folgenden Unterrichtsmaterial.
+
+    **Deine Rolle als Lehrer:**
+    - Du bist geduldig, ermutigend und professionell
+    - Du korrigierst Fehler freundlich und konstruktiv
+    - Du stellst gezielte Fragen, um das Verständnis zu prüfen
+    - Du gibst positive Rückmeldung für richtige Antworten
+    - Du erklärst grammatische Regeln klar und verständlich
+
+    **Struktur des Dialogs:**
+    1. Beginne mit einer einfachen Frage zum Thema
+    2. Warte auf die Antwort des Schülers
+    3. Korrigiere Fehler und erkläre sie kurz
+    4. Stelle die nächste Frage, die auf der vorherigen aufbaut
+    5. Führe den Dialog schrittweise weiter
+
+    **Wichtige Regeln:**
+    - Sprich nur auf Deutsch ({level}-Niveau)
+    - Verwende klare, verständliche Sätze
+    - Korrigiere Grammatik- und Aussprachefehler
+    - Erkläre neue Vokabeln kurz
+    - Sei ermutigend und positiv
+    - Verwende Beispiele aus dem Unterrichtsmaterial
+
+    **Thema der Lektion:** {topic}
+    
+    **Unterrichtsmaterial:**
+    {lesson_text}
+
+    Beginne jetzt mit der ersten Frage zum Thema. Sei ein guter Lehrer!
+    """
+
 @app.route('/embed_full')
 def embed_full():
     topic = request.args.get("topic")
@@ -185,20 +242,12 @@ def ask():
 
         # Если истории нет, создаём первую запись с текстом урока
         if 'chat_history' not in session:
+            level = detect_lesson_level(topic)
+            teacher_prompt = create_teacher_prompt(topic, lesson_text, level)
             session['chat_history'] = [
                 {
                     "role": "system",
-                    "content": f"""
-                    Nur b2 Niveau. Besprich mit mir diesen Dialog auf B2 Niveau. Wir sprechen nur im Rahmen diesen Dialoges. Stell mir eine Frage und warte auf meine Antwort, nach meiner Antwort stell erneut eine Frage und warte auf meine Antwort. Benutze keine Überflüssigen Wörter, stell dierekt eine Frage, ohne eine Einleitung. 
-                    Wenn ich Fehler mache, korrigiere Sie und dann antworte. wie sprechen nur in Rahmen diesen Dialoges. Wenn du nichts mehr fragen kannst, sag einfach "vielen Dank". Nur b2 Niveau. Benutze keine Überflüssigen Wörter, stell dierekt eine Frage, ohne eine Einleitung.  In dem Dialog geht es darum, dass mehrere wichtige Teilnehmer für ein geplantes Meeting abgesagt haben.
-                    Anna sagt, dass das Meeting so nicht stattfinden kann, weil die wichtigsten Personen fehlen.
-                    Lukas schlägt vor, das Meeting auf nächste Woche zu verschieben.
-                    Beide einigen sich darauf, die Agenda schon heute per E-Mail zu verschicken und die gewonnene Zeit zu nutzen, um die Präsentation zu verbessern.
-                    👉 Zusammengefasst: Das Meeting wird verschoben, die Vorbereitung läuft heute weiter..
-                    Thema der Lektion: '{topic}'.
-                    Verwenden Sie für Ihre Antworten den folgenden Lektionstext:
-                    {lesson_text}
-                    """
+                    "content": teacher_prompt
                 }
             ]
 
@@ -239,9 +288,13 @@ def ask():
             def generate():
                 try:
                     response = client.chat.completions.create(
-                        model="gpt-4",
+                        model="gpt-4o",  # Используем GPT-4o - последнюю версию
                         messages=chat_history,
-                        stream=True
+                        stream=True,
+                        temperature=0.7,  # Контролируем креативность
+                        max_tokens=1000,  # Ограничиваем длину ответа
+                        presence_penalty=0.1,  # Поощряем разнообразие
+                        frequency_penalty=0.1   # Уменьшаем повторения
                     )
                     collected = []
                     for chunk in response:
@@ -265,8 +318,12 @@ def ask():
         print("📦 Ответ без stream")
 
         response = client.chat.completions.create(
-            model="gpt-4",
-            messages=chat_history
+            model="gpt-4o",  # Используем GPT-4o - последнюю версию
+            messages=chat_history,
+            temperature=0.7,  # Контролируем креативность
+            max_tokens=1000,  # Ограничиваем длину ответа
+            presence_penalty=0.1,  # Поощряем разнообразие
+            frequency_penalty=0.1   # Уменьшаем повторения
         ) 
 
         answer_raw = response.choices[0].message.content
@@ -325,8 +382,10 @@ def generate_test():
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "system", "content": prompt}]
+            model="gpt-4o",  # Используем GPT-4o - последнюю версию
+            messages=[{"role": "system", "content": prompt}],
+            temperature=0.3,  # Низкая температура для более точных ответов
+            max_tokens=1500   # Больше токенов для тестов
         )
 
         test_data = response.choices[0].message.content
