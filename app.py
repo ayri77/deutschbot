@@ -96,19 +96,26 @@ def get_model_params(model_name):
     """
     Возвращает параметры для конкретной модели
     """
+    print(f"🔧 Получаем параметры для модели: {model_name}")
+    
     if model_name == "gpt-5":
         # GPT-5 использует max_completion_tokens вместо max_tokens
-        return {
-            "max_completion_tokens": 1000
+        params = {
+            "max_completion_tokens": 1000,
+            "temperature": 0.7
         }
+        print(f"📋 Параметры GPT-5: {params}")
+        return params
     else:
         # Для других моделей используем полный набор параметров
-        return {
+        params = {
             "temperature": 0.7,
             "max_tokens": 1000,
             "presence_penalty": 0.1,
             "frequency_penalty": 0.1
         }
+        print(f"📋 Параметры {model_name}: {params}")
+        return params
 
 def log_model_usage(model_name, response_time=None):
     """
@@ -368,8 +375,24 @@ def ask():
                 **params
             )
         except Exception as e:
-            print(f"❌ Ошибка при запросе к API: {e}")
-            return jsonify({"error": f"Ошибка API: {str(e)}"}), 500
+            print(f"❌ Ошибка при запросе к API с моделью {model}: {e}")
+            
+            # Если это GPT-5, попробуем GPT-4o
+            if model == "gpt-5":
+                print(f"🔄 Пробуем fallback на GPT-4o...")
+                try:
+                    fallback_params = get_model_params("gpt-4o")
+                    response = client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=chat_history,
+                        **fallback_params
+                    )
+                    print(f"✅ Успешно использовали fallback GPT-4o")
+                except Exception as fallback_error:
+                    print(f"❌ Ошибка и с fallback: {fallback_error}")
+                    return jsonify({"error": f"Ошибка API: {str(fallback_error)}"}), 500
+            else:
+                return jsonify({"error": f"Ошибка API: {str(e)}"}), 500
         
         response_time = time.time() - start_time
         log_model_usage(model, response_time) 
@@ -379,6 +402,27 @@ def ask():
         
         answer_raw = response.choices[0].message.content
         print(f"📝 Сырой ответ: '{answer_raw}'")
+        
+        # Проверяем, не пустой ли ответ
+        if not answer_raw or not answer_raw.strip():
+            print(f"⚠️ Получен пустой ответ от API!")
+            # Попробуем с более простым промптом
+            simple_prompt = "Antworte auf Deutsch auf die letzte Nachricht des Schülers. Sei hilfreich und freundlich."
+            try:
+                print(f"🔄 Пробуем с простым промптом...")
+                simple_response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": simple_prompt},
+                        {"role": "user", "content": question}
+                    ],
+                    **params
+                )
+                answer_raw = simple_response.choices[0].message.content
+                print(f"📝 Новый ответ: '{answer_raw}'")
+            except Exception as simple_error:
+                print(f"❌ Ошибка с простым промптом: {simple_error}")
+                answer_raw = "Entschuldigung, ich hatte ein Problem mit der Antwort. Können Sie das nochmal sagen?"
         
         answer_html = markdown(answer_raw)
         print(f"🧾 HTML ответ: '{answer_html}'")
