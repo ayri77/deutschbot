@@ -37,8 +37,8 @@ else:
 client = openai.OpenAI(api_key=openai_key)
 
 # Настройки модели - легко изменить
-AI_MODEL = "gpt-5"  # Текущая модель - GPT-5 (после верификации)
-AI_MODEL_FALLBACK = "gpt-4o"  # Резервная модель
+AI_MODEL = "gpt-4o"  # Временно переключаемся на GPT-4o для стабильности
+AI_MODEL_FALLBACK = "gpt-4o-mini"  # Резервная модель
 
 # Доступные модели:
 # - "gpt-5" (текущая, самая новая и мощная)
