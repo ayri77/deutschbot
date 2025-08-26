@@ -359,22 +359,34 @@ def ask():
         model = get_ai_model()
         params = get_model_params(model)
         
-        response = client.chat.completions.create(
-            model=model,
-            messages=chat_history,
-            **params
-        )
+        print(f"🔧 Параметры запроса: model={model}, params={params}")
+        
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=chat_history,
+                **params
+            )
+        except Exception as e:
+            print(f"❌ Ошибка при запросе к API: {e}")
+            return jsonify({"error": f"Ошибка API: {str(e)}"}), 500
         
         response_time = time.time() - start_time
         log_model_usage(model, response_time) 
 
+        print(f"📥 Сырой ответ от API: {response}")
+        print(f"📥 response.choices: {response.choices}")
+        
         answer_raw = response.choices[0].message.content
+        print(f"📝 Сырой ответ: '{answer_raw}'")
+        
         answer_html = markdown(answer_raw)
+        print(f"🧾 HTML ответ: '{answer_html}'")
 
         chat_history.append({"role": "assistant", "content": answer_raw})        
         session['chat_history'] = chat_history        
 
-        print(f"Ответ от ChatGPT: {answer_html}")
+        print(f"✅ Финальный ответ: {answer_html}")
 
         return jsonify({"answer": answer_html})
 
