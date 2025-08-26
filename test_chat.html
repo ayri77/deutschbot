@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест чатбота</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .test-link {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f0f0f0;
+            text-decoration: none;
+            color: #333;
+            border-radius: 5px;
+        }
+        .test-link:hover {
+            background: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тест чатбота</h1>
+    
+    <h2>Обычный режим (с кнопками):</h2>
+    <a href="http://localhost:5000/embed_full?topic=test&hide_buttons=false" class="test-link" target="_blank">
+        Тест с кнопками
+    </a>
+    
+    <h2>Скрытый режим (без кнопок):</h2>
+    <a href="http://localhost:5000/embed_full?topic=test&hide_buttons=true" class="test-link" target="_blank">
+        Тест без кнопок (бот должен сразу начать диалог)
+    </a>
+    
+    <h2>Доступные темы:</h2>
+    <a href="http://localhost:5000/embed_full?topic=a1.1&hide_buttons=true" class="test-link" target="_blank">
+        A1.1 - без кнопок
+    </a>
+    <a href="http://localhost:5000/embed_full?topic=a2.1&hide_buttons=true" class="test-link" target="_blank">
+        A2.1 - без кнопок
+    </a>
+    <a href="http://localhost:5000/embed_full?topic=b1.1&hide_buttons=true" class="test-link" target="_blank">
+        B1.1 - без кнопок
+    </a>
+</body>
+</html>

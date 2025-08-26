@@ -33,7 +33,7 @@
 								<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span> Chatbot typing...
 							</p>
 						</div>
-						<div id="quick-options" class="hidden">
+						<div id="quick-options" class="hidden" {% if hide_buttons %}style="display: none;"{% endif %}>
 							<button data-msg="Объясни грамматику">📘 Объясни грамматику...</button>
 							<button data-msg="Покажи примеры">📄 Приведи примеры...</button>
 							<button data-msg="Проверь мои знания">🧠 Проведи тестирование...</button>
@@ -46,11 +46,11 @@
 								<div id="send-message-button">
 									<i class="fas fa-arrow-alt-circle-right"></i>
 								</div>
-								<div id="voice-input-button" title="Голосовой ввод">
+								<div id="voice-input-button" title="Голосовой ввод" {% if hide_buttons %}style="display: none;"{% endif %}>
 									<i class="fas fa-microphone"></i>
 								</div>								
 							</div>
-							<div id="input-toolbar">
+							<div id="input-toolbar" {% if hide_buttons %}style="display: none;"{% endif %}>
 								<button id="toggle-options-button" class="show-quick-options">Показать сценарии</button>
 							</div>						
 						</div>

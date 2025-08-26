@@ -133,7 +133,7 @@ def create_teacher_prompt(topic, lesson_text, level="B2"):
     - Du erklärst grammatische Regeln klar und verständlich
 
     **Struktur des Dialogs:**
-    1. Beginne mit einer einfachen Frage zum Thema
+    1. Beginne IMMER mit "Wir besprechen jetzt unseren Dialog." und stelle dann eine einfache Frage zum Thema
     2. Warte auf die Antwort des Schülers
     3. Korrigiere Fehler und erkläre sie kurz
     4. Stelle die nächste Frage, die auf der vorherigen aufbaut
@@ -146,20 +146,23 @@ def create_teacher_prompt(topic, lesson_text, level="B2"):
     - Erkläre neue Vokabeln kurz
     - Sei ermutigend und positiv
     - Verwende Beispiele aus dem Unterrichtsmaterial
+    - Beginne IMMER mit "Wir besprechen jetzt unseren Dialog."
 
     **Thema der Lektion:** {topic}
     
     **Unterrichtsmaterial:**
     {lesson_text}
 
-    Beginne jetzt mit der ersten Frage zum Thema. Sei ein guter Lehrer!
+    Beginne jetzt mit "Wir besprechen jetzt unseren Dialog." und stelle dann die erste Frage zum Thema. Sei ein guter Lehrer!
     """
 
 @app.route('/embed_full')
 def embed_full():
     topic = request.args.get("topic")
-    file_type = request.args.get("file_type", "html")    
-    print(f"▶️ embed_full: topic = {topic}, file_type = {file_type}")
+    file_type = request.args.get("file_type", "html")
+    hide_buttons = request.args.get("hide_buttons", "false").lower() == "true"
+    
+    print(f"▶️ embed_full: topic = {topic}, file_type = {file_type}, hide_buttons = {hide_buttons}")
     if topic:
         # Загрузка HTML-урока
         filename = topic + "." + file_type
@@ -180,13 +183,14 @@ def embed_full():
                 session.clear()
                 session['chat_context'] = text
                 session['chat_topic'] = topic
+                session['hide_buttons'] = hide_buttons
                 print("✅ Контекст загружен:")
                 print(text[:500])
         else:
             print(f"❌ Файл не найден: {filepath}")
     else:
         print("⚠️ Нет параметра 'topic' в URL")          
-    return render_template("chat_embed_fullstyle.html")
+    return render_template("chat_embed_fullstyle.html", hide_buttons=hide_buttons)
 
 @app.after_request
 def allow_iframe(response):
@@ -300,31 +304,13 @@ def ask():
                     "content": teacher_prompt
                 }
             ]
+            
+            # Если это первое сообщение и кнопки скрыты, бот должен сразу начать диалог
+            hide_buttons = session.get('hide_buttons', False)
+            if hide_buttons and not question.strip():
+                # Отправляем пустое сообщение от пользователя, чтобы бот начал диалог
+                question = "Начни диалог"
 
-        '''
-            session['chat_history'] = [
-                {
-                    "role": "system",
-                    "content": f"""
-                    Ты преподаватель немецкого языка. Ты ведешь диалог с учащимся.
-                    Тема урока: '{topic}'.
-
-                    Используй для ответов следующий текст урока:
-                    {lesson_text}
-
-                    🧾 Пожалуйста, оформляй ответы аккуратно:
-                    - Используй списки (`1.`, `2.`, `-`) там, где это уместно.
-                    - Выделяй важные слова с помощью **жирного текста**.
-                    - Примеры всегда оборачивай в отдельный HTML-блок:
-                    <div class="example">Du arbeitest. – Ты работаешь.</div>
-                    - Если в ответе есть примеры, оборачивай каждую пару "немецкий — перевод" в тег <div class="example">.
-                    - Немецкую часть оборачивай в <span lang="de">…</span>, а русскую — в <span lang="ru">…</span>
-                    - Пример должен содержать как немецкий, так и русский вариант (или перевод).
-                    - Не добавляй лишних приветствий и фраз, просто переходи к делу.
-                    """
-                }
-            ]
-        '''
         # Добавляем вопрос пользователя в историю            
         chat_history = session['chat_history']      
         chat_history.append({"role": "user", "content": question})

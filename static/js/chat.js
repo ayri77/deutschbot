@@ -618,6 +618,23 @@ const sendChatbotMessage = async (userMessage) => {
 
 const sendUserMessage = () => {
   const userMessage = MESSAGE_INPUT_FIELD.value;
+  
+  // Проверяем, нужно ли скрыть кнопки
+  const hideButtons = new URLSearchParams(window.location.search).get("hide_buttons") === "true";
+  
+  // Если кнопки скрыты и это первое сообщение, отправляем пустое сообщение для старта диалога
+  if (hideButtons && !userMessage.trim() && STATE.chatbotMessageIndex === 0) {
+    STATE.isUserSendingMessage = true;
+    sendChatbotMessage("");
+    
+    setTimeout(() => {
+      STATE.isUserSendingMessage = false;
+      toggleInput();
+    }, 1000);
+    return;
+  }
+  
+  // Обычная логика для непустых сообщений
   if (!userMessage.trim()) return;
 
   STATE.isUserSendingMessage = true;
@@ -648,20 +665,35 @@ const init = () => {
   setChatbotMood()
   initLetterPool()
 
-  const greetingMessage = getRandGreeting();
-  STATE.isChatBotSendingMessage = true;
-  addChatMessage(greetingMessage, true);
-  STATE.chatbotMessageIndex++;
-  showQuickOptions();
+  // Проверяем, нужно ли скрыть кнопки
+  const hideButtons = new URLSearchParams(window.location.search).get("hide_buttons") === "true";
   
-  setTimeout(() => {
-    STATE.isChatBotSendingMessage = false;
+  // Если кнопки скрыты, не показываем приветствие и сценарии
+  if (!hideButtons) {
+    const greetingMessage = getRandGreeting();
+    STATE.isChatBotSendingMessage = true;
+    addChatMessage(greetingMessage, true);
+    STATE.chatbotMessageIndex++;
+    showQuickOptions();
+    
+    setTimeout(() => {
+      STATE.isChatBotSendingMessage = false;
+      toggleInput();
+    }, 2000);
+  } else {
+    // Если кнопки скрыты, сразу включаем ввод и автоматически начинаем диалог
     toggleInput();
-  }, 2000);
+    
+    // Автоматически отправляем первое сообщение, чтобы бот начал диалог
+    setTimeout(() => {
+      MESSAGE_INPUT_FIELD.value = "";
+      sendUserMessage();
+    }, 500);
+  }
 
   setMoodInterval(getRandMoodInterval());
 
-  if (STATE.chatbotMessageIndex === 0) {
+  if (STATE.chatbotMessageIndex === 0 && !hideButtons) {
     showWelcomeMessageAndOptions();
   }  
 };
