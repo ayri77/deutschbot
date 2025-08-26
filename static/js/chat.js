@@ -896,21 +896,39 @@ document.getElementById("voice-input-button").onclick = () => {
 
 // Функция для добавления кнопки "проговаривания" примеров из сообщения
 function addSpeakExamplesButton(messageContent) {
+  // Проверяем, нужно ли скрыть кнопки
+  const hideButtons = new URLSearchParams(window.location.search).get("hide_buttons") === "true";
+  
   const button = document.createElement("button");
-  button.textContent = "🔊 Произнести примеры";
+  
+  if (hideButtons) {
+    // В режиме скрытых кнопок - произносим весь текст на немецком
+    button.textContent = "🔊 Проговорить текст";
+    button.onclick = () => {
+      const fullText = extractFullTextFromMessage(messageContent);
+      if (fullText) {
+        speakWithGoogleTTS(fullText, "de-DE");
+      } else {
+        alert("Текст для произношения не найден.");
+      }
+    };
+  } else {
+    // В обычном режиме - произносим только примеры
+    button.textContent = "🔊 Произнести примеры";
+    button.onclick = () => {
+      const examples = extractExamplesFromMessage(messageContent);
+      if (examples.length > 0) {
+        speakExamplesSequentially(examples);
+      } else {
+        alert("Примеры для произношения не найдены.");
+      }
+    };
+  }
+  
   button.style.marginTop = "10px";
   button.style.padding = "5px 10px";
   button.style.fontSize = "14px";
   button.style.cursor = "pointer";
- 
-  button.onclick = () => {
-    const examples = extractExamplesFromMessage(messageContent);
-    if (examples.length > 0) {
-      speakExamplesSequentially(examples);
-    } else {
-      alert("Примеры для произношения не найдены.");
-    }
-  };
 
   messageContent.appendChild(button);
 }
@@ -929,6 +947,23 @@ function extractExamplesFromMessage(messageContent) {
   });
 
   return examples;
+}
+
+// Функция для извлечения всего текста сообщения (только немецкая часть)
+function extractFullTextFromMessage(messageContent) {
+  // Получаем весь текст сообщения
+  const fullText = messageContent.textContent || messageContent.innerText || "";
+  
+  // Очищаем текст от лишних пробелов и переносов строк
+  const cleanedText = fullText
+    .replace(/\s+/g, ' ')  // Заменяем множественные пробелы на один
+    .replace(/\n+/g, ' ')  // Заменяем переносы строк на пробелы
+    .trim();
+  
+  // Убираем текст кнопки из результата
+  const textWithoutButton = cleanedText.replace(/🔊 Проговорить текст/g, '').trim();
+  
+  return textWithoutButton;
 }
 
 
