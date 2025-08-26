@@ -100,9 +100,9 @@ def get_model_params(model_name):
     
     if model_name == "gpt-5":
         # GPT-5 использует max_completion_tokens вместо max_tokens
+        # GPT-5 не поддерживает temperature, только значение по умолчанию
         params = {
-            "max_completion_tokens": 1000,
-            "temperature": 0.7
+            "max_completion_tokens": 1000
         }
         print(f"📋 Параметры GPT-5: {params}")
         return params
@@ -484,6 +484,9 @@ def generate_test():
         # Для тестов используем больше токенов
         if model == "gpt-5":
             params["max_completion_tokens"] = 1500
+            # Убираем temperature для GPT-5
+            if "temperature" in params:
+                del params["temperature"]
         else:
             params["max_tokens"] = 1500
         
